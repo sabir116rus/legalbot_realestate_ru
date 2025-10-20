@@ -1,5 +1,5 @@
 from rag import KnowledgeBase, build_context_snippets
-
+import pytest
 
 def test_knowledge_base_normalizes_id_column(tmp_path):
     csv_path = tmp_path / "kb.csv"
