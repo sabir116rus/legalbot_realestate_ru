@@ -2,6 +2,47 @@
 import os
 import re
 import asyncio
+import csv
+from datetime import datetime
+import tiktoken
+
+LOG_PATH = os.path.join(os.path.dirname(__file__), "data", "log.csv")
+os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+
+def count_tokens(text: str, model="gpt-4o-mini") -> int:
+    """Подсчёт количества токенов для отчёта."""
+    try:
+        enc = tiktoken.encoding_for_model(model)
+        return len(enc.encode(text))
+    except Exception:
+        return len(text.split())
+
+def log_interaction(user_id, username, question, answer, score, model, status="ok"):
+    """Запись запроса и ответа в log.csv."""
+    header = [
+        "timestamp", "user_id", "username", "question",
+        "answer_preview", "top_score", "tokens", "model", "status"
+    ]
+    row = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "user_id": user_id,
+        "username": username or "",
+        "question": question,
+        "answer_preview": (answer[:150] + "...") if len(answer) > 150 else answer,
+        "top_score": score,
+        "tokens": count_tokens(answer, model),
+        "model": model,
+        "status": status
+    }
+
+    # если файла нет — создаём с заголовком
+    file_exists = os.path.exists(LOG_PATH)
+    with open(LOG_PATH, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=header)
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(row)
+
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandObject
 from aiogram.types import Message
@@ -98,6 +139,16 @@ async def cmd_ask(m: Message, command: CommandObject):
 
     await m.chat.do("typing")
     answer = await generate_answer(q)
+    # Логируем результат
+    top_score = kb.query(q, top_k=1)[0]["score"] if kb.query(q, top_k=1) else 0
+    log_interaction(
+        user_id=m.from_user.id,
+        username=m.from_user.username,
+        question=q,
+        answer=answer,
+        score=top_score,
+        model=OPENAI_MODEL
+    )
     await m.answer(
         f"<b>Вопрос:</b> {q}\n\n"
         f"{answer}\n\n"
@@ -110,6 +161,16 @@ async def any_text(m: Message):
     q = m.text.strip()
     await m.chat.do("typing")
     answer = await generate_answer(q)
+    # Логируем результат
+    top_score = kb.query(q, top_k=1)[0]["score"] if kb.query(q, top_k=1) else 0
+    log_interaction(
+        user_id=m.from_user.id,
+        username=m.from_user.username,
+        question=q,
+        answer=answer,
+        score=top_score,
+        model=OPENAI_MODEL
+    )
     await m.answer(
         f"<b>Вопрос:</b> {q}\n\n"
         f"{answer}\n\n"
