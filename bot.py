@@ -98,7 +98,7 @@ async def setup_bot_menu() -> None:
             BotCommand(command="help", description="Получить подсказки"),
         ]
     )
-    await bot.set_chat_menu_button(MenuButtonCommands())
+    await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
 
 async def main():
     setup_services()
