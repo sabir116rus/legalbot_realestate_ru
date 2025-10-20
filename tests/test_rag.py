@@ -30,3 +30,35 @@ def test_build_context_snippets_contains_id():
     ])
 
     assert "[ID:42]" in snippet
+
+
+def test_knowledge_base_query_respects_top_k(tmp_path):
+    csv_path = tmp_path / "kb.csv"
+    csv_path.write_text(
+        "id,topic,question,answer,law_refs,url\n"
+        "1,Аренда,Как оформить аренду квартиры?,Ответ1,Закон1,http://a\n"
+        "2,Продажа,Как оформить продажу?,Ответ2,Закон2,http://b\n"
+        "3,Регистрация,Как зарегистрировать ИП?,Ответ3,Закон3,http://c\n",
+        encoding="utf-8-sig",
+    )
+
+    kb = KnowledgeBase(str(csv_path))
+
+    results = kb.query("оформить аренду", top_k=2)
+
+    assert len(results) == 2
+    assert results[0]["id"] == 1
+    assert all("score" in r for r in results)
+
+
+def test_knowledge_base_query_empty_question(tmp_path):
+    csv_path = tmp_path / "kb.csv"
+    csv_path.write_text(
+        "id,topic,question,answer,law_refs,url\n"
+        "1,Тема,Вопрос,Ответ,Закон,http://example\n",
+        encoding="utf-8-sig",
+    )
+
+    kb = KnowledgeBase(str(csv_path))
+
+    assert kb.query("", top_k=3) == []
