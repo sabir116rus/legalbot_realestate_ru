@@ -55,6 +55,19 @@ legalbot_realestate_ru/
   python analyze_logs.py --log data/log.csv
   ```
 
+## Оценка покрытия
+
+Скрипт `evaluate_csv_coverage.py` помогает определить, какие вопросы в логах остаются без релевантных ответов из базы знаний.
+
+```bash
+python evaluate_csv_coverage.py --threshold 60
+```
+
+- `--threshold` — минимальное значение `top_score`, при котором вопрос считается покрытым.
+- `--recompute-score` — пересчитать оценки через `KnowledgeBase` вместо использования сохранённых `top_score`.
+- `--top-n` — сколько самых проблемных вопросов показать в отчёте.
+- `--out report.csv` — сохранить таблицу с проблемными вопросами в файл.
+
 ## CSV — формат базы знаний
 
 | id | topic | question | answer | law_refs | url |
