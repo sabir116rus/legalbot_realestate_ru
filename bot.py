@@ -2,7 +2,7 @@
 import asyncio
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import Message, BotCommand, MenuButtonCommands
 from aiogram.client.default import DefaultBotProperties
 from openai import AsyncOpenAI
 
@@ -91,8 +91,18 @@ async def any_text(
         "<i>Ответ носит информационный характер и не является юридической консультацией.</i>"
     )
 
+async def setup_bot_menu() -> None:
+    await bot.set_my_commands(
+        [
+            BotCommand(command="start", description="Начать работу с ботом"),
+            BotCommand(command="help", description="Получить подсказки"),
+        ]
+    )
+    await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
+
 async def main():
     setup_services()
+    await setup_bot_menu()
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
