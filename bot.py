@@ -1,7 +1,7 @@
 
 import asyncio
 from aiogram import Bot, Dispatcher, F
-from aiogram.filters import Command, CommandObject
+from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram.client.default import DefaultBotProperties
 from openai import AsyncOpenAI
@@ -50,7 +50,7 @@ async def cmd_start(m: Message):
         "• Регистрация прав, Росреестр, ЭЦП\n"
         "• Земля, строительство, долевое участие\n\n"
         "📌 <b>Как задать вопрос:</b>\n"
-        "• Напиши /ask и сформулируй ситуацию\n"
+        "• Просто опиши ситуацию или задай вопрос текстом\n"
         "• Загляни в /help за примерами\n\n"
         "<i>Ответы носят информационный характер и не являются юридической консультацией.</i>"
     )
@@ -59,44 +59,15 @@ async def cmd_start(m: Message):
 async def cmd_help(m: Message):
     await m.answer(
         "Как задать вопрос:\n"
-        "• /ask Какие документы нужны для продажи квартиры?\n"
-        "• /ask Чем отличается аренда и найм?\n\n"
+        "• Какие документы нужны для продажи квартиры?\n"
+        "• Чем отличается аренда и найм?\n\n"
         "Подсказки:\n"
         "— Пиши конкретно и добавляй детали (цель, статус объекта, ипотека и т. д.).\n"
         "— Я всегда добавлю «Правовые основания», если они есть в базе."
     )
 
-@dp.message(Command("ask"))
-async def cmd_ask(
-    m: Message,
-    command: CommandObject,
-    answer_service: AnswerService,
-    interaction_logger: InteractionLogger,
-):
-    q = (command.args or "").strip()
-    if not q:
-        await m.answer("Напиши вопрос после команды /ask. Пример: /ask Какие документы нужны для продажи квартиры?")
-        return
-
-    await m.chat.do("typing")
-    answer_result = await answer_service.generate_answer(q)
-    interaction_logger.log(
-        user_id=m.from_user.id,
-        username=m.from_user.username,
-        question=q,
-        answer=answer_result.text,
-        top_score=answer_result.top_score,
-        model=answer_service.model,
-        status=answer_result.status,
-    )
-    await m.answer(
-        f"<b>Вопрос:</b> {q}\n\n"
-        f"{answer_result.text}\n\n"
-        "<i>Ответ носит информационный характер и не является юридической консультацией.</i>"
-    )
-
 # Фоллбек: любой текст как вопрос
-@dp.message(F.text.len() > 3)
+@dp.message(F.text & (F.text.len() > 3) & ~F.text.startswith("/"))
 async def any_text(
     m: Message,
     answer_service: AnswerService,
