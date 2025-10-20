@@ -34,8 +34,10 @@ def setup_services() -> None:
 
     interaction_logger = InteractionLogger(config.log_path)
 
-    dp[AnswerService] = answer_service
-    dp[InteractionLogger] = interaction_logger
+    dp.workflow_data.update(
+        answer_service=answer_service,
+        interaction_logger=interaction_logger,
+    )
 
 @dp.message(Command("start"))
 async def cmd_start(m: Message):
