@@ -49,7 +49,7 @@ from aiogram.types import Message
 from aiogram.client.default import DefaultBotProperties
 from dotenv import load_dotenv
 from rag import KnowledgeBase, build_context_snippets
-from openai import OpenAI
+from openai import AsyncOpenAI
 
 load_dotenv()
 
@@ -74,7 +74,7 @@ KB_PATH = os.path.join(os.path.dirname(__file__), "data", "knowledge.csv")
 kb = KnowledgeBase(KB_PATH)
 
 # OpenAI client
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 def load_system_prompt():
     p = os.path.join(os.path.dirname(__file__), "prompt_system_ru.txt")
@@ -94,7 +94,7 @@ async def generate_answer(user_question: str) -> str:
     ]
 
     try:
-        resp = client.chat.completions.create(
+        resp = await client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=messages,
             temperature=0.2
