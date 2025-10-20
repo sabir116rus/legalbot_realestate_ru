@@ -40,12 +40,20 @@ OpenAI (GPT)  ←  RAG (CSV: data/knowledge.csv)
 legalbot_realestate_ru/
 ├─ bot.py                # основной скрипт бота
 ├─ rag.py                # загрузка CSV и поиск релевантных статей/ответов
+├─ analyze_logs.py       # утилита для аналитики логов
 ├─ prompt_system_ru.txt  # системные инструкции ассистента
 ├─ requirements.txt
 ├─ .env.example
 └─ data/
    └─ knowledge.csv      # база знаний (CSV)
 ```
+
+## Утилиты
+
+- `analyze_logs.py` — собирает статистику по CSV логам, строит распределения по темам, моделям и временным интервалам. Пример запуска:
+  ```bash
+  python analyze_logs.py --log data/log.csv
+  ```
 
 ## CSV — формат базы знаний
 
