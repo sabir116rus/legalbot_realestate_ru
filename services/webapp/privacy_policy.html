@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Политика конфиденциальности LegalBot</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg-color: #0f172a;
+        --bg-color-light: #f8fafc;
+        --card-bg: rgba(15, 23, 42, 0.85);
+        --card-bg-light: #ffffff;
+        --accent: #2563eb;
+        --text-primary: #e2e8f0;
+        --text-primary-light: #0f172a;
+        --text-muted: #94a3b8;
+        --text-muted-light: #475569;
+        --border-color: rgba(148, 163, 184, 0.3);
+      }
+
+      @media (prefers-color-scheme: light) {
+        body {
+          background: linear-gradient(160deg, #eff6ff 0%, #dbeafe 35%, #bfdbfe 100%);
+          color: var(--text-primary-light);
+        }
+        .card {
+          background: var(--card-bg-light);
+          color: var(--text-primary-light);
+          border: 1px solid rgba(148, 163, 184, 0.3);
+        }
+        h1,
+        h2,
+        h3 {
+          color: var(--text-primary-light);
+        }
+        p,
+        li {
+          color: var(--text-muted-light);
+        }
+      }
+
+      body {
+        margin: 0;
+        font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+        background: radial-gradient(circle at top left, #1e293b, #020617);
+        color: var(--text-primary);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 32px 16px 64px;
+      }
+
+      .card {
+        width: min(960px, 100%);
+        background: var(--card-bg);
+        backdrop-filter: blur(12px);
+        border-radius: 24px;
+        padding: 40px 32px;
+        box-shadow: 0 40px 80px rgba(15, 23, 42, 0.45);
+        border: 1px solid var(--border-color);
+      }
+
+      header {
+        margin-bottom: 32px;
+      }
+
+      h1 {
+        font-size: clamp(32px, 5vw, 42px);
+        margin-bottom: 12px;
+      }
+
+      h2 {
+        margin-top: 36px;
+        margin-bottom: 16px;
+        font-size: clamp(22px, 4vw, 26px);
+      }
+
+      p,
+      li {
+        line-height: 1.7;
+        font-size: 17px;
+        color: var(--text-muted);
+      }
+
+      ul {
+        padding-left: 24px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(37, 99, 235, 0.1);
+        color: #bfdbfe;
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-size: 14px;
+        letter-spacing: 0.02em;
+      }
+
+      .accent {
+        color: #60a5fa;
+        font-weight: 600;
+      }
+
+      footer {
+        margin-top: 48px;
+        font-size: 15px;
+        color: var(--text-muted);
+      }
+
+      a {
+        color: #93c5fd;
+      }
+
+      .grid {
+        display: grid;
+        gap: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <header>
+        <span class="badge">LegalBot · Недвижимость · Россия</span>
+        <h1>Политика конфиденциальности</h1>
+        <p>
+          Настоящий документ описывает, как ИИ-бот LegalBot обрабатывает и защищает
+          персональные данные пользователей в соответствии с требованиями Федерального закона
+          РФ от 27.07.2006 № 152-ФЗ «О персональных данных» и сопутствующим нормативным актам.
+        </p>
+      </header>
+
+      <section class="grid">
+        <h2>1. Основные понятия</h2>
+        <p>
+          <span class="accent">Оператор</span> — команда LegalBot, обеспечивающая работу
+          Telegram-бота и сопутствующих сервисов. <span class="accent">Пользователь</span> —
+          любое физическое лицо, которое взаимодействует с ботом через Telegram. Под
+          <span class="accent">персональными данными</span> понимаются любая информация, прямо
+          или косвенно относящаяся к Пользователю: ФИО, контактные данные, сведения о запросе.
+        </p>
+      </section>
+
+      <section class="grid">
+        <h2>2. Цели обработки данных</h2>
+        <p>
+          Персональные данные обрабатываются исключительно для предоставления консультаций по
+          вопросам недвижимости, ведения истории обращений, аналитики качества сервиса и
+          последующей обратной связи. Данные не используются для профилирования, навязчивого
+          маркетинга или передачи третьим лицам без отдельного согласия.
+        </p>
+      </section>
+
+      <section class="grid">
+        <h2>3. Обрабатываемые данные</h2>
+        <ul>
+          <li>Идентификаторы Telegram (user_id, username, отображаемое имя).</li>
+          <li>
+            Текстовые сообщения и документы, добровольно предоставленные Пользователем в рамках
+            консультации.
+          </li>
+          <li>
+            Контактные данные (телефон, email, ссылка на мессенджер), если Пользователь оформляет
+            заявку на консультацию специалиста.
+          </li>
+          <li>Техническая телеметрия: дата и время обращения, статус доставки сообщения.</li>
+        </ul>
+      </section>
+
+      <section class="grid">
+        <h2>4. Правовые основания</h2>
+        <p>
+          Обработка осуществляется на основании добровольного согласия Пользователя (п. 1 ст. 6
+          152-ФЗ). Отправляя данные через Telegram-бота, Пользователь подтверждает, что ознакомился
+          с условиями настоящей политики и принимает их.
+        </p>
+      </section>
+
+      <section class="grid">
+        <h2>5. Хранение и защита</h2>
+        <p>
+          Данные сохраняются в защищённом хранилище, доступ к которому имеет ограниченный круг
+          сотрудников, допущенных к обработке персональных данных. Используются технические и
+          организационные меры: шифрование трафика, сегментация доступа, периодическое резервное
+          копирование. Срок хранения — не более 3 лет с даты последнего взаимодействия либо до
+          момента отзыва согласия.
+        </p>
+      </section>
+
+      <section class="grid">
+        <h2>6. Передача третьим лицам</h2>
+        <p>
+          Данные могут передаваться юридическим консультантам-партнёрам исключительно для
+          исполнения запроса Пользователя и только после получения явного согласия. Передача в
+          иные цели, включая маркетинг, исключена. Международная передача не осуществляется.
+        </p>
+      </section>
+
+      <section class="grid">
+        <h2>7. Права пользователя</h2>
+        <ul>
+          <li>Запросить сведения о наличии и составе обрабатываемых данных.</li>
+          <li>Уточнить, заблокировать или уничтожить данные при наличии законных оснований.</li>
+          <li>Отозвать согласие на обработку путём отправки уведомления оператору.</li>
+          <li>Обжаловать действия оператора в Роскомнадзоре или суде.</li>
+        </ul>
+        <p>
+          Для реализации прав направьте обращение на адрес электронной почты
+          <a href="mailto:privacy@legalbot.ru">privacy@legalbot.ru</a>. Запрос будет обработан не
+          позднее 30 календарных дней.
+        </p>
+      </section>
+
+      <section class="grid">
+        <h2>8. Использование данных для AI</h2>
+        <p>
+          Текст запросов анализируется нейросетью OpenAI для формирования ответа. Передача данных
+          происходит в обезличенном виде по зашифрованному каналу. LegalBot не использует
+          пользовательские сообщения для обучения собственных моделей без дополнительного согласия.
+        </p>
+      </section>
+
+      <section class="grid">
+        <h2>9. Файлы cookie и аналитика</h2>
+        <p>
+          Telegram Web App использует только технические cookie, необходимые для корректной работы
+          интерфейса. Сторонние системы аналитики и рекламные пиксели не подключаются.
+        </p>
+      </section>
+
+      <section class="grid">
+        <h2>10. Обновления политики</h2>
+        <p>
+          Политика может обновляться по мере развития сервиса и изменения требований законодательства.
+          Актуальная редакция всегда доступна по данной ссылке. При существенных изменениях мы
+          уведомим пользователей через Telegram-бота.
+        </p>
+      </section>
+
+      <footer>
+        Последняя редакция: 12 января 2025 года. Вопросы по защите данных направляйте на
+        <a href="mailto:privacy@legalbot.ru">privacy@legalbot.ru</a>.
+      </footer>
+    </main>
+  </body>
+</html>
