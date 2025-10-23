@@ -16,6 +16,7 @@ class Config:
     knowledge_base_path: Path
     system_prompt: str
     log_path: Path
+    consultation_log_path: Path
 
     @classmethod
     def load(cls) -> "Config":
@@ -35,7 +36,9 @@ class Config:
         data_dir = base_dir / "data"
         knowledge_base_path = data_dir / "knowledge.csv"
         log_path = data_dir / "log.csv"
+        consultation_log_path = data_dir / "consultations.csv"
         log_path.parent.mkdir(parents=True, exist_ok=True)
+        consultation_log_path.parent.mkdir(parents=True, exist_ok=True)
 
         system_prompt_path = base_dir / "prompt_system_ru.txt"
         system_prompt = system_prompt_path.read_text(encoding="utf-8")
@@ -48,4 +51,5 @@ class Config:
             knowledge_base_path=knowledge_base_path,
             system_prompt=system_prompt,
             log_path=log_path,
+            consultation_log_path=consultation_log_path,
         )

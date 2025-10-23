@@ -2,12 +2,15 @@
 import asyncio
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message, BotCommand, MenuButtonCommands
 from aiogram.client.default import DefaultBotProperties
 from openai import AsyncOpenAI
 
 from config import Config
-from services import AnswerService, InteractionLogger
+from services import AnswerService, ConsultationLogger, InteractionLogger
 from rag import KnowledgeBase
 
 
@@ -17,7 +20,13 @@ bot = Bot(
     token=config.telegram_bot_token,
     default=DefaultBotProperties(parse_mode="HTML"),
 )
-dp = Dispatcher()
+dp = Dispatcher(storage=MemoryStorage())
+
+
+class ConsultationForm(StatesGroup):
+    full_name = State()
+    contact = State()
+    request = State()
 
 
 def setup_services() -> None:
@@ -33,10 +42,12 @@ def setup_services() -> None:
     )
 
     interaction_logger = InteractionLogger(config.log_path)
+    consultation_logger = ConsultationLogger(config.consultation_log_path)
 
     dp.workflow_data.update(
         answer_service=answer_service,
         interaction_logger=interaction_logger,
+        consultation_logger=consultation_logger,
     )
 
 @dp.message(Command("start"))
@@ -65,6 +76,53 @@ async def cmd_help(m: Message):
         "— Пиши конкретно и добавляй детали (цель, статус объекта, ипотека и т. д.).\n"
         "— Я всегда добавлю «Правовые основания», если они есть в базе."
     )
+
+
+@dp.message(Command("consultation"))
+async def cmd_consultation(m: Message, state: FSMContext):
+    await state.set_state(ConsultationForm.full_name)
+    await m.answer(
+        "📝 <b>Запрос консультации</b>\n"
+        "Пожалуйста, укажи своё имя и фамилию."
+    )
+
+
+@dp.message(ConsultationForm.full_name, F.text)
+async def consultation_full_name(m: Message, state: FSMContext):
+    await state.update_data(full_name=m.text.strip())
+    await state.set_state(ConsultationForm.contact)
+    await m.answer("Как с тобой связаться? Оставь телефон, email или ник в мессенджере.")
+
+
+@dp.message(ConsultationForm.contact, F.text)
+async def consultation_contact(m: Message, state: FSMContext):
+    await state.update_data(contact=m.text.strip())
+    await state.set_state(ConsultationForm.request)
+    await m.answer("Кратко опиши, какая помощь нужна.")
+
+
+@dp.message(ConsultationForm.request, F.text)
+async def consultation_request(
+    m: Message,
+    state: FSMContext,
+    consultation_logger: ConsultationLogger,
+):
+    data = await state.get_data()
+    await state.clear()
+
+    consultation_logger.log(
+        user_id=m.from_user.id,
+        username=m.from_user.username,
+        full_name=data.get("full_name", ""),
+        contact=data.get("contact", ""),
+        request=m.text.strip(),
+    )
+
+    await m.answer(
+        "Спасибо! Заявка на консультацию сохранена. 👌\n"
+        "Наш специалист свяжется с тобой по указанным контактам."
+    )
+
 
 # Фоллбек: любой текст как вопрос
 @dp.message(F.text & (F.text.len() > 3) & ~F.text.startswith("/"))
@@ -96,6 +154,7 @@ async def setup_bot_menu() -> None:
         [
             BotCommand(command="start", description="Начать работу с ботом"),
             BotCommand(command="help", description="Получить подсказки"),
+            BotCommand(command="consultation", description="Оставить заявку на консультацию"),
         ]
     )
     await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
