@@ -5,7 +5,14 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import Message, BotCommand, MenuButtonCommands
+from aiogram.types import (
+    Message,
+    BotCommand,
+    MenuButtonCommands,
+    CallbackQuery,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+)
 from aiogram.client.default import DefaultBotProperties
 from openai import AsyncOpenAI
 
@@ -21,6 +28,36 @@ bot = Bot(
     default=DefaultBotProperties(parse_mode="HTML"),
 )
 dp = Dispatcher(storage=MemoryStorage())
+
+consented_users: set[int] = set()
+
+WELCOME_MESSAGE = (
+    "👋 <b>Привет! Я LegalBot</b> — ассистент по вопросам недвижимости.\n\n"
+    "🧭 <b>Чем могу помочь:</b>\n"
+    "• Покупка и продажа жилья\n"
+    "• Аренда и найм\n"
+    "• Ипотека, маткапитал, субсидии\n"
+    "• Регистрация прав, Росреестр, ЭЦП\n"
+    "• Земля, строительство, долевое участие\n\n"
+    "📌 <b>Как задать вопрос:</b>\n"
+    "• Просто опиши ситуацию или задай вопрос текстом\n"
+    "• Загляни в /help за примерами\n\n"
+    "<i>Ответы носят информационный характер и не являются юридической консультацией.</i>"
+)
+
+
+def _user_has_consented(user_id: int | None) -> bool:
+    return user_id is not None and user_id in consented_users
+
+
+async def _ensure_user_consent(message: Message) -> bool:
+    if _user_has_consented(message.from_user.id if message.from_user else None):
+        return True
+
+    await message.answer(
+        "Чтобы продолжить, подтвердите согласие, нажав кнопку «Я даю своё согласие…» в /start."
+    )
+    return False
 
 
 class ConsultationForm(StatesGroup):
@@ -52,22 +89,33 @@ def setup_services() -> None:
 
 @dp.message(Command("start"))
 async def cmd_start(m: Message):
-    await m.answer(
-        "👋 <b>Привет! Я LegalBot</b> — ассистент по вопросам недвижимости.\n\n"
-        "🧭 <b>Чем могу помочь:</b>\n"
-        "• Покупка и продажа жилья\n"
-        "• Аренда и найм\n"
-        "• Ипотека, маткапитал, субсидии\n"
-        "• Регистрация прав, Росреестр, ЭЦП\n"
-        "• Земля, строительство, долевое участие\n\n"
-        "📌 <b>Как задать вопрос:</b>\n"
-        "• Просто опиши ситуацию или задай вопрос текстом\n"
-        "• Загляни в /help за примерами\n\n"
-        "<i>Ответы носят информационный характер и не являются юридической консультацией.</i>"
+    user_id = m.from_user.id if m.from_user else None
+    if _user_has_consented(user_id):
+        await m.answer(WELCOME_MESSAGE)
+        return
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="Я даю своё согласие…",
+                    callback_data="consent_yes",
+                ),
+                InlineKeyboardButton(
+                    text="Я не даю своё согласие",
+                    callback_data="consent_no",
+                ),
+            ]
+        ]
     )
+
+    await m.answer(config.privacy_policy_message, reply_markup=keyboard)
 
 @dp.message(Command("help"))
 async def cmd_help(m: Message):
+    if not await _ensure_user_consent(m):
+        return
+
     await m.answer(
         "Как задать вопрос:\n"
         "• Какие документы нужны для продажи квартиры?\n"
@@ -80,6 +128,9 @@ async def cmd_help(m: Message):
 
 @dp.message(Command("consultation"))
 async def cmd_consultation(m: Message, state: FSMContext):
+    if not await _ensure_user_consent(m):
+        return
+
     await state.set_state(ConsultationForm.full_name)
     await m.answer(
         "📝 <b>Запрос консультации</b>\n"
@@ -89,6 +140,10 @@ async def cmd_consultation(m: Message, state: FSMContext):
 
 @dp.message(ConsultationForm.full_name, F.text)
 async def consultation_full_name(m: Message, state: FSMContext):
+    if not await _ensure_user_consent(m):
+        await state.clear()
+        return
+
     await state.update_data(full_name=m.text.strip())
     await state.set_state(ConsultationForm.contact)
     await m.answer("Как с тобой связаться? Оставь телефон, email или ник в мессенджере.")
@@ -96,6 +151,10 @@ async def consultation_full_name(m: Message, state: FSMContext):
 
 @dp.message(ConsultationForm.contact, F.text)
 async def consultation_contact(m: Message, state: FSMContext):
+    if not await _ensure_user_consent(m):
+        await state.clear()
+        return
+
     await state.update_data(contact=m.text.strip())
     await state.set_state(ConsultationForm.request)
     await m.answer("Кратко опиши, какая помощь нужна.")
@@ -107,6 +166,10 @@ async def consultation_request(
     state: FSMContext,
     consultation_logger: ConsultationLogger,
 ):
+    if not await _ensure_user_consent(m):
+        await state.clear()
+        return
+
     data = await state.get_data()
     await state.clear()
 
@@ -131,6 +194,9 @@ async def any_text(
     answer_service: AnswerService,
     interaction_logger: InteractionLogger,
 ):
+    if not await _ensure_user_consent(m):
+        return
+
     q = m.text.strip()
     await m.chat.do("typing")
     answer_result = await answer_service.generate_answer(q)
@@ -148,6 +214,30 @@ async def any_text(
         f"{answer_result.text}\n\n"
         "<i>Ответ носит информационный характер и не является юридической консультацией.</i>"
     )
+
+
+@dp.callback_query(F.data == "consent_yes")
+async def consent_yes(callback: CallbackQuery):
+    user_id = callback.from_user.id if callback.from_user else None
+    if user_id is not None:
+        consented_users.add(user_id)
+
+    await callback.answer("Согласие получено. Спасибо!")
+    if callback.message:
+        await callback.message.answer(WELCOME_MESSAGE)
+
+
+@dp.callback_query(F.data == "consent_no")
+async def consent_no(callback: CallbackQuery):
+    user_id = callback.from_user.id if callback.from_user else None
+    if user_id is not None:
+        consented_users.discard(user_id)
+
+    await callback.answer("Без согласия мы не можем продолжить работу.")
+    if callback.message:
+        await callback.message.answer(
+            "Жаль, что мы не сможем продолжить. Если передумаешь, вернись в /start."
+        )
 
 async def setup_bot_menu() -> None:
     await bot.set_my_commands(

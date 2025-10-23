@@ -17,6 +17,7 @@ class Config:
     system_prompt: str
     log_path: Path
     consultation_log_path: Path
+    privacy_policy_message: str
 
     @classmethod
     def load(cls) -> "Config":
@@ -43,6 +44,14 @@ class Config:
         system_prompt_path = base_dir / "prompt_system_ru.txt"
         system_prompt = system_prompt_path.read_text(encoding="utf-8")
 
+        privacy_policy_message = os.getenv(
+            "PRIVACY_POLICY_MESSAGE",
+            (
+                "Перед началом работы ознакомьтесь с <a href=\"https://example.com/privacy\">"
+                "политикой конфиденциальности</a> и подтвердите своё согласие."
+            ),
+        )
+
         return cls(
             telegram_bot_token=telegram_bot_token,
             openai_api_key=openai_api_key,
@@ -52,4 +61,5 @@ class Config:
             system_prompt=system_prompt,
             log_path=log_path,
             consultation_log_path=consultation_log_path,
+            privacy_policy_message=privacy_policy_message,
         )
