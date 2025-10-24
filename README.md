@@ -9,7 +9,7 @@
 1) Создай бота у @BotFather и получи **TELEGRAM_BOT_TOKEN**.  
 2) Получи ключ OpenAI и укажи **OPENAI_API_KEY**.  
 3) Скопируй `.env.example` в `.env` и заполни значения.  
-4) Установи зависимости:  
+4) Установи зависимости (включают `aiogram`, `aiohttp`, `rapidfuzz`, `tiktoken`, а также `pytest` и `pytest-asyncio` для тестов):
    ```bash
    pip install -r requirements.txt
    ```
@@ -40,18 +40,26 @@ OpenAI (GPT)  ←  RAG (CSV: data/knowledge.csv)
 ## Структура
 ```
 legalbot_realestate_ru/
-├─ bot.py                # основной скрипт бота
-├─ rag.py                # загрузка CSV и поиск релевантных статей/ответов
-├─ analyze_logs.py       # утилита для аналитики логов
-├─ prompt_system_ru.txt  # системные инструкции ассистента
+├─ bot.py                    # основной скрипт бота
+├─ config.py                 # загрузка переменных окружения и путей к ресурсам
+├─ rag.py                    # загрузка CSV и поиск релевантных статей/ответов
+├─ analyze_logs.py           # утилита для аналитики логов
+├─ evaluate_csv_coverage.py  # отчёт по не покрытым вопросам
+├─ prompt_system_ru.txt      # системные инструкции ассистента
 ├─ requirements.txt
 ├─ .env.example
 ├─ services/
-│  ├─ answer_service.py        # бизнес-логика генерации ответов через OpenAI и RAG
-│  ├─ interaction_logger.py    # запись вопросов/ответов в CSV с токенами и статусом
-│  └─ consultation_logger.py   # хранение заявок на консультации в отдельном CSV
-└─ data/
-   └─ knowledge.csv      # база знаний (CSV)
+│  ├─ answer_service.py              # бизнес-логика генерации ответов через OpenAI и RAG
+│  ├─ interaction_logger.py          # запись вопросов/ответов в CSV с токенами и статусом
+│  ├─ consultation_logger.py         # хранение заявок на консультации в отдельном CSV
+│  └─ webapp/
+│     ├─ privacy_policy.html         # статическая страница политики конфиденциальности
+│     └─ privacy_policy_webapp.py    # минимальное веб-приложение aiohttp для выдачи HTML
+├─ data/
+│  ├─ knowledge.csv                  # база знаний (CSV)
+│  ├─ log.csv                        # лог вопросов/ответов (создаётся автоматически)
+│  └─ consultations.csv              # заявки на консультации (создаётся автоматически)
+└─ tests/                            # автотесты pytest и pytest-asyncio
 ```
 
 ## Основные компоненты
@@ -76,6 +84,23 @@ legalbot_realestate_ru/
   ```bash
   python analyze_logs.py --log data/log.csv
   ```
+
+## Веб-приложение политики конфиденциальности
+
+Если Telegram требует публичную ссылку на политику конфиденциальности, подними мини-веб-приложение из пакета `services.webapp`.
+Команда запускает сервер на указанном хосте и порту и отдаёт готовый HTML:
+
+```bash
+python -m services.webapp.privacy_policy_webapp --host 0.0.0.0 --port 8080
+```
+
+После старта настрой переменную окружения `PRIVACY_POLICY_WEBAPP_URL`, чтобы бот раздавал эту ссылку пользователям, например:
+
+```bash
+export PRIVACY_POLICY_WEBAPP_URL="http://localhost:8080/privacy-policy"
+```
+
+Замените `localhost` и порт на адрес, доступный вашим пользователям (например, домен сервера или reverse-proxy).
 
 ## Оценка покрытия
 
@@ -106,4 +131,9 @@ python evaluate_csv_coverage.py --threshold 60
 
 ## Тестирование
 
-Готовые автотесты лежат в каталоге `tests/` и покрывают загрузку конфигурации, работу RAG, генерацию ответов и логи взаимодействий. Запуск выполняется стандартной командой `pytest`.
+Готовые автотесты лежат в каталоге `tests/` и покрывают загрузку конфигурации, работу RAG, генерацию ответов и логи взаимодействий.
+После установки зависимостей из `requirements.txt` (включая `pytest` и `pytest-asyncio`) запусти весь набор командой:
+
+```bash
+pytest
+```
