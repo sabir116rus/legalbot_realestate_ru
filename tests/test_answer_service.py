@@ -48,7 +48,10 @@ def test_generate_answer_uses_context_and_strips_markdown():
     result = asyncio.run(service.generate_answer("Что с арендой?"))
 
     assert isinstance(result, AnswerResult)
-    assert result.text == "Привет, вот ответ."
+    assert result.text.startswith("Привет, вот ответ.")
+    assert "Рекомендации:" in result.text
+    assert "Возможные пути решения:" in result.text
+    assert "Правовые основания:" in result.text
     assert result.top_score == 95
     assert result.status == "ok"
 
@@ -85,3 +88,37 @@ def test_generate_answer_handles_exceptions():
     assert result.top_score == 0
     assert "Извини" in result.text
     assert "Техническая ошибка" in result.text
+
+
+@pytest.mark.asyncio
+def test_generate_answer_adds_missing_sections():
+    kb = Mock()
+    kb.query.return_value = []
+
+    response_content = "Просто ответ без разделов"
+    mock_create = AsyncMock(
+        return_value=SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(content=response_content)
+                )
+            ]
+        )
+    )
+    client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=mock_create))
+    )
+
+    service = AnswerService(
+        knowledge_base=kb,
+        openai_client=client,
+        model="gpt-test",
+        system_prompt="Системное сообщение",
+        rag_top_k=3,
+    )
+
+    result = asyncio.run(service.generate_answer("Вопрос"))
+
+    assert "Рекомендации:" in result.text
+    assert "Возможные пути решения:" in result.text
+    assert "Правовые основания:" in result.text
