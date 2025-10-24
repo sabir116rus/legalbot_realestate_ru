@@ -61,6 +61,7 @@ class AnswerService:
             )
             text = response.choices[0].message.content.strip()
             text = self._strip_markdown(text)
+            text = self._ensure_required_sections(text)
             status = "ok"
         except Exception as exc:  # pragma: no cover - network errors
             text = (
@@ -77,6 +78,29 @@ class AnswerService:
         text = re.sub(r"#+\s*", "", text)
         text = re.sub(r"_([^_]+)_", r"\1", text)
         return text
+
+    @staticmethod
+    def _ensure_required_sections(text: str) -> str:
+        required_sections = (
+            ("Рекомендации", "- Раздел не был сформирован моделью."),
+            (
+                "Возможные пути решения",
+                "- Раздел не был сформирован моделью.",
+            ),
+            ("Правовые основания", "- Раздел не был сформирован моделью."),
+        )
+
+        normalized_text = text.strip()
+        for section, placeholder in required_sections:
+            pattern = re.compile(rf"^\s*{re.escape(section)}\b", re.IGNORECASE | re.MULTILINE)
+            if pattern.search(normalized_text):
+                continue
+
+            if normalized_text:
+                normalized_text += "\n\n"
+            normalized_text += f"{section}:\n{placeholder}"
+
+        return normalized_text
 
     @property
     def model(self) -> str:

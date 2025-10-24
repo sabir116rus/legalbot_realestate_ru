@@ -16,6 +16,35 @@ def test_knowledge_base_normalizes_id_column(tmp_path):
     assert kb.df["id"].iloc[0] == 1
 
 
+def test_knowledge_base_generates_ids_for_missing_values(tmp_path):
+    csv_path = tmp_path / "kb.csv"
+    csv_path.write_text(
+        "id,topic,question,answer,law_refs,url\n"
+        ",Topic1,Question1,Answer1,Law1,https://example.com/1\n"
+        " ,Topic2,Question2,Answer2,Law2,https://example.com/2\n",
+        encoding="utf-8-sig",
+    )
+
+    kb = KnowledgeBase(str(csv_path))
+
+    ids = kb.df["id"].tolist()
+    assert ids[0] == "auto_1"
+    assert ids[1] == "auto_2"
+
+
+def test_knowledge_base_converts_float_like_ids(tmp_path):
+    csv_path = tmp_path / "kb.csv"
+    csv_path.write_text(
+        "id,topic,question,answer,law_refs,url\n"
+        "1.0,Topic,Question,Answer,Law,https://example.com\n",
+        encoding="utf-8-sig",
+    )
+
+    kb = KnowledgeBase(str(csv_path))
+
+    assert kb.df["id"].tolist() == [1]
+
+
 def test_build_context_snippets_contains_id():
     snippet = build_context_snippets([
         {

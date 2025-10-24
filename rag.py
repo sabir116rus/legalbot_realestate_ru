@@ -23,8 +23,38 @@ class KnowledgeBase:
         if "id" not in self.df.columns:
             raise ValueError("Knowledge CSV must contain an 'id' column after normalization")
 
+        def _normalize_id_value(value, row_index):
+            if pd.isna(value):
+                return f"auto_{row_index + 1}"
+
+            if isinstance(value, float):
+                return int(value) if value.is_integer() else value
+
+            if isinstance(value, int):
+                return value
+
+            if isinstance(value, str):
+                normalized = value.strip().lstrip("\ufeff")
+                if not normalized:
+                    return f"auto_{row_index + 1}"
+                try:
+                    float_value = float(normalized)
+                except ValueError:
+                    return normalized
+                else:
+                    return int(float_value) if float_value.is_integer() else normalized
+
+            return value
+
+        normalized_ids = [
+            _normalize_id_value(value, idx)
+            for idx, value in enumerate(self.df["id"].tolist())
+        ]
+
+        self.df["id"] = normalized_ids
+
         if self.df["id"].isnull().any():
-            raise ValueError("Knowledge CSV contains empty values in the 'id' column")
+            raise ValueError("Knowledge CSV contains invalid values in the 'id' column after normalization")
 
         # Текст для поиска: объединяем поля вопрос+ответ+тема
         self.df["search_text"] = (
