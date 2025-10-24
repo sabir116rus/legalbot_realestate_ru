@@ -55,7 +55,7 @@ class Config:
 
         privacy_policy_webapp_url = os.getenv(
             "PRIVACY_POLICY_WEBAPP_URL",
-            "https://example.com/legalbot/privacy-policy",
+            "https://sabir116rus.github.io/legalbot-policy/",
         )
 
         return cls(
