@@ -22,7 +22,9 @@ class Config:
 
     @classmethod
     def load(cls) -> "Config":
-        load_dotenv()
+        base_dir = Path(__file__).resolve().parent
+
+        load_dotenv(dotenv_path=base_dir / ".env", override=False)
 
         telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
         openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -34,7 +36,6 @@ class Config:
         if not openai_api_key:
             raise RuntimeError("OPENAI_API_KEY is not set")
 
-        base_dir = Path(__file__).resolve().parent
         data_dir = base_dir / "data"
         knowledge_base_path = data_dir / "knowledge.csv"
         log_path = data_dir / "log.csv"
