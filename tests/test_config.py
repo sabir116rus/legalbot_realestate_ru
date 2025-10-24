@@ -19,6 +19,8 @@ def test_config_loads_with_env_and_temp_prompt(tmp_path, monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "key")
     monkeypatch.setenv("OPENAI_MODEL", "gpt-test")
     monkeypatch.setenv("RAG_TOP_K", "4")
+    monkeypatch.setenv("PRIVACY_POLICY_WEBAPP_URL", "https://test.example/app")
+    monkeypatch.setenv("PRIVACY_POLICY_MESSAGE", "custom message")
     monkeypatch.setattr("config.__file__", str(fake_config_file))
 
     cfg = Config.load()
@@ -32,6 +34,8 @@ def test_config_loads_with_env_and_temp_prompt(tmp_path, monkeypatch):
     assert cfg.log_path == data_dir / "log.csv"
     assert cfg.log_path.parent == data_dir
     assert cfg.log_path.parent.exists()
+    assert cfg.privacy_policy_message == "custom message"
+    assert cfg.privacy_policy_webapp_url == "https://test.example/app"
 
 
 @pytest.mark.parametrize("missing_var", ["TELEGRAM_BOT_TOKEN", "OPENAI_API_KEY"])

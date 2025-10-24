@@ -12,6 +12,7 @@ from aiogram.types import (
     CallbackQuery,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
+    WebAppInfo,
 )
 from aiogram.client.default import DefaultBotProperties
 from openai import AsyncOpenAI
@@ -98,6 +99,12 @@ async def cmd_start(m: Message):
         inline_keyboard=[
             [
                 InlineKeyboardButton(
+                    text="📄 Открыть политику",
+                    web_app=WebAppInfo(url=config.privacy_policy_webapp_url),
+                )
+            ],
+            [
+                InlineKeyboardButton(
                     text="Я даю своё согласие…",
                     callback_data="consent_yes",
                 ),
@@ -105,7 +112,7 @@ async def cmd_start(m: Message):
                     text="Я не даю своё согласие",
                     callback_data="consent_no",
                 ),
-            ]
+            ],
         ]
     )
 

@@ -18,6 +18,7 @@ class Config:
     log_path: Path
     consultation_log_path: Path
     privacy_policy_message: str
+    privacy_policy_webapp_url: str
 
     @classmethod
     def load(cls) -> "Config":
@@ -47,9 +48,14 @@ class Config:
         privacy_policy_message = os.getenv(
             "PRIVACY_POLICY_MESSAGE",
             (
-                "Перед началом работы ознакомьтесь с <a href=\"https://example.com/privacy\">"
-                "политикой конфиденциальности</a> и подтвердите своё согласие."
+                "Перед началом работы откройте политику конфиденциальности,"
+                " изучите условия и подтвердите своё согласие."
             ),
+        )
+
+        privacy_policy_webapp_url = os.getenv(
+            "PRIVACY_POLICY_WEBAPP_URL",
+            "https://sabir116rus.github.io/legalbot-policy/",
         )
 
         return cls(
@@ -62,4 +68,5 @@ class Config:
             log_path=log_path,
             consultation_log_path=consultation_log_path,
             privacy_policy_message=privacy_policy_message,
+            privacy_policy_webapp_url=privacy_policy_webapp_url,
         )
