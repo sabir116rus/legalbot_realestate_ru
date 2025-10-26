@@ -81,35 +81,45 @@ class AnswerService:
 
     @staticmethod
     def _ensure_required_sections(text: str) -> str:
-        required_sections = (
-            ("Суть ситуации", "- Раздел не был сформирован моделью."),
-            (
-                "Что нужно уточнить",
-                "- Уточните region, object_type, role, mortgage, minors_involved.",
-            ),
-            ("Рекомендации", "- Раздел не был сформирован моделью."),
-            (
-                "Возможные пути решения",
-                "- Раздел не был сформирован моделью.",
-            ),
-            ("Правовые основания", "- Раздел не был сформирован моделью."),
-            (
-                "Предупреждения и ограничения",
-                "- Раздел не был сформирован моделью. Помните, что ассистент не заменяет юриста и информация требует проверки.",
-            ),
+        section_titles = (
+            "Суть ситуации",
+            "Что нужно уточнить",
+            "Рекомендации",
+            "Возможные пути решения",
+            "Правовые основания",
+            "Предупреждения и ограничения",
+        )
+
+        canonical_titles = {title.lower(): title for title in section_titles}
+        section_regex = re.compile(
+            rf"^(?P<title>{'|'.join(re.escape(title) for title in section_titles)})\s*:\s*",
+            re.IGNORECASE | re.MULTILINE,
         )
 
         normalized_text = text.strip()
-        for section, placeholder in required_sections:
-            pattern = re.compile(rf"^\s*{re.escape(section)}\b", re.IGNORECASE | re.MULTILINE)
-            if pattern.search(normalized_text):
+        matches = list(section_regex.finditer(normalized_text))
+        if not matches:
+            return normalized_text
+
+        parts: list[str] = []
+
+        preamble = normalized_text[: matches[0].start()].strip()
+        if preamble:
+            parts.append(preamble)
+
+        for index, match in enumerate(matches):
+            title_raw = match.group("title")
+            title = canonical_titles.get(title_raw.lower(), title_raw)
+            content_start = match.end()
+            content_end = matches[index + 1].start() if index + 1 < len(matches) else len(normalized_text)
+            content = normalized_text[content_start:content_end].strip()
+
+            if not content:
                 continue
 
-            if normalized_text:
-                normalized_text += "\n\n"
-            normalized_text += f"{section}:\n{placeholder}"
+            parts.append(f"{title}:\n{content}")
 
-        return normalized_text
+        return "\n\n".join(parts).strip()
 
     @property
     def model(self) -> str:
