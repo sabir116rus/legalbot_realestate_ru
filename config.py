@@ -37,7 +37,7 @@ class Config:
             raise RuntimeError("OPENAI_API_KEY is not set")
 
         data_dir = base_dir / "data"
-        knowledge_base_path = data_dir / "knowledge.csv"
+        knowledge_base_path = data_dir / "knowledge.json"
         log_path = data_dir / "log.csv"
         consultation_log_path = data_dir / "consultations.csv"
         log_path.parent.mkdir(parents=True, exist_ok=True)
