@@ -28,8 +28,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--knowledge",
         type=str,
-        default="data/knowledge.csv",
-        help="Path to knowledge CSV used for topic inference",
+        default="data/knowledge.json",
+        help="Path to knowledge base JSON used for topic inference",
     )
     parser.add_argument(
         "--top-k",
