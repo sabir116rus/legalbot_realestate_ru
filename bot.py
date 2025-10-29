@@ -241,7 +241,6 @@ async def any_text(
         if HISTORY_LIMIT > 0 and len(history) > HISTORY_LIMIT:
             del history[:-HISTORY_LIMIT]
     await m.answer(
-        f"<b>Вопрос:</b> {q}\n\n"
         f"{answer_result.text}\n\n"
         "<i>Ответ носит информационный характер и не является юридической консультацией.</i>"
     )
