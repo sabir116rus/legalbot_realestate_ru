@@ -31,7 +31,13 @@ class AnswerService:
         self._system_prompt = system_prompt
         self._rag_top_k = rag_top_k
 
-    async def generate_answer(self, user_question: str) -> AnswerResult:
+    async def generate_answer(
+        self,
+        user_question: str,
+        *,
+        history: list[dict[str, str]] | None = None,
+        history_limit: int = 10,
+    ) -> AnswerResult:
         hits = self._knowledge_base.query(user_question, top_k=self._rag_top_k)
         top_score = hits[0]["score"] if hits else 0
         context_text = (
@@ -40,8 +46,20 @@ class AnswerService:
             else "Контекст из базы знаний не найден."
         )
 
-        messages = [
-            {"role": "system", "content": self._system_prompt},
+        messages: list[dict[str, str]] = [
+            {"role": "system", "content": self._system_prompt}
+        ]
+
+        normalized_history = list(history or [])
+        if history_limit > 0:
+            normalized_history = normalized_history[-history_limit:]
+        elif history_limit == 0:
+            normalized_history = []
+
+        if normalized_history:
+            messages.extend(normalized_history)
+
+        messages.append(
             {
                 "role": "user",
                 "content": (
@@ -50,8 +68,8 @@ class AnswerService:
                     "Контекст (из базы знаний):\n"
                     f"{context_text}"
                 ),
-            },
-        ]
+            }
+        )
 
         try:
             response = await self._openai_client.chat.completions.create(
