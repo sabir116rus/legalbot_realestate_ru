@@ -10,7 +10,7 @@ class ConsultationLogger:
         "timestamp",
         "user_id",
         "username",
-        "full_name",
+        "name",
         "contact",
         "request",
     ]
@@ -24,7 +24,7 @@ class ConsultationLogger:
         *,
         user_id: int,
         username: str | None,
-        full_name: str,
+        name: str,
         contact: str,
         request: str,
     ) -> None:
@@ -32,7 +32,7 @@ class ConsultationLogger:
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "user_id": user_id,
             "username": username or "",
-            "full_name": full_name,
+            "name": name,
             "contact": contact,
             "request": request,
         }

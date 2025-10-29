@@ -21,6 +21,7 @@ from openai import AsyncOpenAI
 
 from config import Config
 from services import AnswerService, ConsultationLogger, InteractionLogger
+from services.contact_validation import ContactValidationError, validate_contact
 from rag import KnowledgeBase
 
 
@@ -67,7 +68,7 @@ async def _ensure_user_consent(message: Message) -> bool:
 
 
 class ConsultationForm(StatesGroup):
-    full_name = State()
+    name = State()
     contact = State()
     request = State()
 
@@ -151,22 +152,22 @@ async def cmd_consultation(m: Message, state: FSMContext):
     if not await _ensure_user_consent(m):
         return
 
-    await state.set_state(ConsultationForm.full_name)
+    await state.set_state(ConsultationForm.name)
     await m.answer(
         "📝 <b>Запрос консультации</b>\n"
-        "Пожалуйста, укажи своё имя и фамилию."
+        "Пожалуйста, укажите своё имя."
     )
 
 
-@dp.message(ConsultationForm.full_name, F.text)
+@dp.message(ConsultationForm.name, F.text)
 async def consultation_full_name(m: Message, state: FSMContext):
     if not await _ensure_user_consent(m):
         await state.clear()
         return
 
-    await state.update_data(full_name=m.text.strip())
+    await state.update_data(name=m.text.strip())
     await state.set_state(ConsultationForm.contact)
-    await m.answer("Как с тобой связаться? Оставь телефон, email или ник в мессенджере.")
+    await m.answer("Как с вами связаться? Оставьте телефон, email или ник в Telegram.")
 
 
 @dp.message(ConsultationForm.contact, F.text)
@@ -175,9 +176,16 @@ async def consultation_contact(m: Message, state: FSMContext):
         await state.clear()
         return
 
-    await state.update_data(contact=m.text.strip())
+    raw_contact = m.text.strip()
+    try:
+        contact = validate_contact(raw_contact)
+    except ContactValidationError as exc:
+        await m.answer(str(exc))
+        return
+
+    await state.update_data(contact=contact)
     await state.set_state(ConsultationForm.request)
-    await m.answer("Кратко опиши, какая помощь нужна.")
+    await m.answer("Кратко опишите, какая помощь нужна.")
 
 
 @dp.message(ConsultationForm.request, F.text)
@@ -193,17 +201,19 @@ async def consultation_request(
     data = await state.get_data()
     await state.clear()
 
+    request_text = m.text.strip()
+
     consultation_logger.log(
         user_id=m.from_user.id,
         username=m.from_user.username,
-        full_name=data.get("full_name", ""),
+        name=data.get("name", ""),
         contact=data.get("contact", ""),
-        request=m.text.strip(),
+        request=request_text,
     )
 
     await m.answer(
         "Спасибо! Заявка на консультацию сохранена. 👌\n"
-        "Наш специалист свяжется с тобой по указанным контактам."
+        "Наш специалист свяжется с вами по указанным контактам."
     )
 
 
