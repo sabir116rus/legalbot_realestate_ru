@@ -21,6 +21,7 @@ from openai import AsyncOpenAI
 
 from config import Config
 from services import AnswerService, ConsultationLogger, ConsentStore, InteractionLogger
+from services.google_drive_client import GoogleDriveClient
 from services.contact_validation import ContactValidationError, validate_contact
 from rag import KnowledgeBase
 
@@ -106,8 +107,20 @@ def setup_services() -> None:
         rag_top_k=config.rag_top_k,
     )
 
-    interaction_logger = InteractionLogger(config.log_path)
-    consultation_logger = ConsultationLogger(config.consultation_log_path)
+    drive_client = None
+    if config.google_drive_credentials_file:
+        drive_client = GoogleDriveClient(config.google_drive_credentials_file)
+
+    interaction_logger = InteractionLogger(
+        config.log_path,
+        drive_client=drive_client,
+        drive_folder_id=config.google_drive_logs_folder_id,
+    )
+    consultation_logger = ConsultationLogger(
+        config.consultation_log_path,
+        drive_client=drive_client,
+        drive_folder_id=config.google_drive_consultations_folder_id,
+    )
 
     dp.workflow_data.update(
         answer_service=answer_service,

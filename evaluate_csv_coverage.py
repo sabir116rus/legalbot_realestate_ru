@@ -6,11 +6,14 @@ import math
 import re
 from collections import Counter
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 
+from config import Config
 from rag import KnowledgeBase
+from services.google_drive_client import GoogleDriveClient
 
 # A simple list of common Russian stop words to be excluded from keyword stats.
 STOP_WORDS = {
@@ -299,6 +302,36 @@ def tokenize(text: str) -> List[str]:
     return [token for token in tokens if token not in STOP_WORDS and not token.isdigit() and len(token) > 1]
 
 
+def _upload_report_to_drive(
+    report_text: str,
+    drive_client: Optional[GoogleDriveClient],
+    folder_id: Optional[str],
+) -> None:
+    if not drive_client or not folder_id or not drive_client.is_configured:
+        return
+
+    tmp_path: Optional[Path] = None
+
+    with NamedTemporaryFile("w", encoding="utf-8", suffix=".txt", delete=False) as tmp_file:
+        tmp_file.write(report_text)
+        tmp_path = Path(tmp_file.name)
+
+    try:
+        if tmp_path:
+            drive_client.upload_or_update_file(
+                tmp_path,
+                folder_id,
+                file_name="coverage_report.txt",
+                mime_type="text/plain",
+            )
+    finally:
+        if tmp_path:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Evaluate coverage of LegalBot knowledge base using logs")
     default_log = Path("data/log.csv")
@@ -365,7 +398,18 @@ def main() -> None:
 
     evaluator.load()
     evaluator.evaluate()
-    print(evaluator.report())
+
+    report_text = evaluator.report()
+    print(report_text)
+
+    config = Config.load(allow_missing=True)
+    drive_client = (
+        GoogleDriveClient(config.google_drive_credentials_file)
+        if config.google_drive_credentials_file
+        else None
+    )
+
+    _upload_report_to_drive(report_text, drive_client, config.google_drive_reports_folder_id)
 
     if args.out:
         out_path = args.out.expanduser()
@@ -373,6 +417,16 @@ def main() -> None:
             out_path = (Path.cwd() / out_path).resolve()
         evaluator.export(out_path)
         print(f"\n[i] Результаты сохранены в {out_path}")
+
+        if (
+            drive_client
+            and drive_client.is_configured
+            and config.google_drive_reports_folder_id
+        ):
+            drive_client.upload_or_update_file(
+                out_path,
+                config.google_drive_reports_folder_id,
+            )
 
 
 if __name__ == "__main__":
