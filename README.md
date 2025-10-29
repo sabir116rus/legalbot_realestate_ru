@@ -32,7 +32,7 @@ Telegram (пользователь)
    ↓
 Aiogram (бот)
    ↓
-OpenAI (GPT)  ←  RAG (JSON: data/knowledge.json)
+OpenAI (GPT)  ←  RAG (CSV: data/knowledge.csv)
    ↓
 Форматированный ответ с рекомендациями и ссылками
 ```
@@ -56,7 +56,7 @@ legalbot_realestate_ru/
 │     ├─ privacy_policy.html         # статическая страница политики конфиденциальности
 │     └─ privacy_policy_webapp.py    # минимальное веб-приложение aiohttp для выдачи HTML
 ├─ data/
-│  ├─ knowledge.json                 # база знаний (JSON)
+│  ├─ knowledge.csv                  # база знаний (CSV)
 │  ├─ log.csv                        # лог вопросов/ответов (создаётся автоматически)
 │  └─ consultations.csv              # заявки на консультации (создаётся автоматически)
 └─ tests/                            # автотесты pytest и pytest-asyncio

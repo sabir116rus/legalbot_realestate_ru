@@ -30,7 +30,7 @@ def test_config_loads_with_env_and_temp_prompt(tmp_path, monkeypatch):
     assert cfg.openai_model == "gpt-test"
     assert cfg.rag_top_k == 4
     assert cfg.system_prompt == prompt_content
-    assert cfg.knowledge_base_path == data_dir / "knowledge.json"
+    assert cfg.knowledge_base_path == data_dir / "knowledge.csv"
     assert cfg.log_path == data_dir / "log.csv"
     assert cfg.log_path.parent == data_dir
     assert cfg.log_path.parent.exists()

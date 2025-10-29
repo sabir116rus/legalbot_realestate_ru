@@ -302,7 +302,7 @@ def tokenize(text: str) -> List[str]:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Evaluate coverage of LegalBot knowledge base using logs")
     default_log = Path("data/log.csv")
-    default_knowledge = Path("data/knowledge.json")
+    default_knowledge = Path("data/knowledge.csv")
 
     parser.add_argument("--log", type=Path, default=default_log, help="Path to CSV log file")
     parser.add_argument(
