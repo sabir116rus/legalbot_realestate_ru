@@ -40,6 +40,25 @@ consent_lock = asyncio.Lock()
 
 HISTORY_LIMIT = 10
 
+NEW_ASK_HINT = "ℹ️ Нужно начать новый вопрос без контекста? Используйте /new_ask."
+NEW_ASK_CONFIRMATION_TEXT = (
+    "🔄 История переписки очищена. Следующий вопрос будет обработан без предыдущего контекста."
+)
+
+NEW_ASK_KEYBOARD = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Очистить контекст", callback_data="new_ask_reset")]
+    ]
+)
+
+
+def with_new_ask_hint(text: str) -> str:
+    if NEW_ASK_HINT in text:
+        return text
+    suffix = "\n" if text.endswith("\n") else "\n\n"
+    return f"{text}{suffix}{NEW_ASK_HINT}"
+
+
 WELCOME_MESSAGE = (
     "👋 <b>Привет! Я LegalBot</b> — ассистент по вопросам недвижимости.\n\n"
     "🧭 <b>Чем могу помочь:</b>\n"
@@ -102,7 +121,7 @@ async def cmd_start(m: Message):
     if user_id is not None:
         conversation_history.pop(user_id, None)
     if _user_has_consented(user_id):
-        await m.answer(WELCOME_MESSAGE)
+        await m.answer(with_new_ask_hint(WELCOME_MESSAGE))
         return
 
     keyboard = InlineKeyboardMarkup(
@@ -137,12 +156,14 @@ async def cmd_help(m: Message):
         return
 
     await m.answer(
-        "Как задать вопрос:\n"
-        "• Какие документы нужны для продажи квартиры?\n"
-        "• Чем отличается аренда и найм?\n\n"
-        "Подсказки:\n"
-        "— Пиши конкретно и добавляй детали (цель, статус объекта, ипотека и т. д.).\n"
-        "— Я всегда добавлю «Правовые основания», если они есть в базе."
+        with_new_ask_hint(
+            "Как задать вопрос:\n"
+            "• Какие документы нужны для продажи квартиры?\n"
+            "• Чем отличается аренда и найм?\n\n"
+            "Подсказки:\n"
+            "— Пиши конкретно и добавляй детали (цель, статус объекта, ипотека и т. д.).\n"
+            "— Я всегда добавлю «Правовые основания», если они есть в базе."
+        )
     )
 
 
@@ -156,9 +177,42 @@ async def cmd_consultation(m: Message, state: FSMContext):
 
     await state.set_state(ConsultationForm.name)
     await m.answer(
-        "📝 <b>Запрос консультации</b>\n"
-        "Пожалуйста, укажите своё имя."
+        with_new_ask_hint(
+            "📝 <b>Запрос консультации</b>\n"
+            "Пожалуйста, укажите своё имя."
+        )
     )
+
+
+@dp.message(Command("new_ask"))
+async def cmd_new_ask(m: Message):
+    user_id = m.from_user.id if m.from_user else None
+    if user_id is not None:
+        conversation_history.pop(user_id, None)
+    if not await _ensure_user_consent(m):
+        return
+
+    await m.answer(
+        with_new_ask_hint(NEW_ASK_CONFIRMATION_TEXT),
+        reply_markup=NEW_ASK_KEYBOARD,
+    )
+
+
+@dp.callback_query(F.data == "new_ask_reset")
+async def new_ask_reset(callback: CallbackQuery):
+    user_id = callback.from_user.id if callback.from_user else None
+    if user_id is not None:
+        conversation_history.pop(user_id, None)
+    if not _user_has_consented(user_id):
+        await callback.answer("Сначала подтвердите согласие в /start.")
+        return
+
+    await callback.answer("История очищена.")
+    if callback.message:
+        await callback.message.answer(
+            with_new_ask_hint(NEW_ASK_CONFIRMATION_TEXT),
+            reply_markup=NEW_ASK_KEYBOARD,
+        )
 
 
 @dp.message(ConsultationForm.name, F.text)
@@ -169,7 +223,9 @@ async def consultation_full_name(m: Message, state: FSMContext):
 
     await state.update_data(name=m.text.strip())
     await state.set_state(ConsultationForm.contact)
-    await m.answer("Как с вами связаться? Оставьте телефон, email или ник в Telegram.")
+    await m.answer(
+        with_new_ask_hint("Как с вами связаться? Оставьте телефон, email или ник в Telegram.")
+    )
 
 
 @dp.message(ConsultationForm.contact, F.text)
@@ -182,12 +238,12 @@ async def consultation_contact(m: Message, state: FSMContext):
     try:
         contact = validate_contact(raw_contact)
     except ContactValidationError as exc:
-        await m.answer(str(exc))
+        await m.answer(with_new_ask_hint(str(exc)))
         return
 
     await state.update_data(contact=contact)
     await state.set_state(ConsultationForm.request)
-    await m.answer("Кратко опишите, какая помощь нужна.")
+    await m.answer(with_new_ask_hint("Кратко опишите, какая помощь нужна."))
 
 
 @dp.message(ConsultationForm.request, F.text)
@@ -214,8 +270,10 @@ async def consultation_request(
     )
 
     await m.answer(
-        "Спасибо! Заявка на консультацию сохранена. 👌\n"
-        "Наш специалист свяжется с вами по указанным контактам."
+        with_new_ask_hint(
+            "Спасибо! Заявка на консультацию сохранена. 👌\n"
+            "Наш специалист свяжется с вами по указанным контактам."
+        )
     )
 
 
@@ -253,8 +311,10 @@ async def any_text(
         if HISTORY_LIMIT > 0 and len(history) > HISTORY_LIMIT:
             del history[:-HISTORY_LIMIT]
     await m.answer(
-        f"{answer_result.text}\n\n"
-        "<i>Ответ носит информационный характер и не является юридической консультацией.</i>"
+        with_new_ask_hint(
+            f"{answer_result.text}\n\n"
+            "<i>Ответ носит информационный характер и не является юридической консультацией.</i>"
+        )
     )
 
 
@@ -268,7 +328,7 @@ async def consent_yes(callback: CallbackQuery):
 
     await callback.answer("Согласие получено. Спасибо!")
     if callback.message:
-        await callback.message.answer(WELCOME_MESSAGE)
+        await callback.message.answer(with_new_ask_hint(WELCOME_MESSAGE))
 
 
 @dp.callback_query(F.data == "consent_no")
@@ -283,7 +343,9 @@ async def consent_no(callback: CallbackQuery):
     await callback.answer("Без согласия мы не можем продолжить работу.")
     if callback.message:
         await callback.message.answer(
-            "Жаль, что мы не сможем продолжить. Если передумаешь, вернись в /start."
+            with_new_ask_hint(
+                "Жаль, что мы не сможем продолжить. Если передумаешь, вернись в /start."
+            )
         )
 
 async def setup_bot_menu() -> None:
@@ -292,6 +354,7 @@ async def setup_bot_menu() -> None:
             BotCommand(command="start", description="Начать работу с ботом"),
             BotCommand(command="help", description="Получить подсказки"),
             BotCommand(command="consultation", description="Оставить заявку на консультацию"),
+            BotCommand(command="new_ask", description="Очистить контекст для нового вопроса"),
         ]
     )
     await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
