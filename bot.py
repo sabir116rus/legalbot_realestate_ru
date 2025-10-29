@@ -20,7 +20,7 @@ from aiogram.client.default import DefaultBotProperties
 from openai import AsyncOpenAI
 
 from config import Config
-from services import AnswerService, ConsultationLogger, InteractionLogger
+from services import AnswerService, ConsultationLogger, ConsentStore, InteractionLogger
 from services.contact_validation import ContactValidationError, validate_contact
 from rag import KnowledgeBase
 
@@ -33,8 +33,10 @@ bot = Bot(
 )
 dp = Dispatcher(storage=MemoryStorage())
 
+consent_store = ConsentStore(config.consent_store_path)
 consented_users: set[int] = set()
 conversation_history: DefaultDict[int, list[dict[str, str]]] = defaultdict(list)
+consent_lock = asyncio.Lock()
 
 HISTORY_LIMIT = 10
 
@@ -260,7 +262,9 @@ async def any_text(
 async def consent_yes(callback: CallbackQuery):
     user_id = callback.from_user.id if callback.from_user else None
     if user_id is not None:
-        consented_users.add(user_id)
+        async with consent_lock:
+            await consent_store.add_consent(user_id)
+            consented_users.add(user_id)
 
     await callback.answer("Согласие получено. Спасибо!")
     if callback.message:
@@ -271,7 +275,9 @@ async def consent_yes(callback: CallbackQuery):
 async def consent_no(callback: CallbackQuery):
     user_id = callback.from_user.id if callback.from_user else None
     if user_id is not None:
-        consented_users.discard(user_id)
+        async with consent_lock:
+            await consent_store.remove_consent(user_id)
+            consented_users.discard(user_id)
         conversation_history.pop(user_id, None)
 
     await callback.answer("Без согласия мы не можем продолжить работу.")
@@ -292,6 +298,9 @@ async def setup_bot_menu() -> None:
 
 async def main():
     setup_services()
+    loaded_consents = await consent_store.load_consents()
+    async with consent_lock:
+        consented_users.update(loaded_consents)
     await setup_bot_menu()
     await dp.start_polling(bot)
 

@@ -17,6 +17,7 @@ class Config:
     system_prompt: str
     log_path: Path
     consultation_log_path: Path
+    consent_store_path: Path
     privacy_policy_message: str
     privacy_policy_webapp_url: str
 
@@ -40,8 +41,10 @@ class Config:
         knowledge_base_path = data_dir / "knowledge.csv"
         log_path = data_dir / "log.csv"
         consultation_log_path = data_dir / "consultations.csv"
+        consent_store_path = data_dir / "consents.json"
         log_path.parent.mkdir(parents=True, exist_ok=True)
         consultation_log_path.parent.mkdir(parents=True, exist_ok=True)
+        consent_store_path.parent.mkdir(parents=True, exist_ok=True)
 
         system_prompt_path = base_dir / "prompt_system_ru.txt"
         system_prompt = system_prompt_path.read_text(encoding="utf-8")
@@ -68,6 +71,7 @@ class Config:
             system_prompt=system_prompt,
             log_path=log_path,
             consultation_log_path=consultation_log_path,
+            consent_store_path=consent_store_path,
             privacy_policy_message=privacy_policy_message,
             privacy_policy_webapp_url=privacy_policy_webapp_url,
         )
