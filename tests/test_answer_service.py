@@ -122,3 +122,60 @@ def test_generate_answer_adds_missing_sections():
     assert "Рекомендации:" in result.text
     assert "Возможные пути решения:" in result.text
     assert "Правовые основания:" in result.text
+
+
+@pytest.mark.asyncio
+def test_generate_answer_includes_history_in_order():
+    kb = Mock()
+    kb.query.return_value = []
+
+    response_content = "Ответ"
+    mock_create = AsyncMock(
+        return_value=SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(content=response_content)
+                )
+            ]
+        )
+    )
+    client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=mock_create))
+    )
+
+    service = AnswerService(
+        knowledge_base=kb,
+        openai_client=client,
+        model="gpt-test",
+        system_prompt="Системное сообщение",
+        rag_top_k=3,
+    )
+
+    history = [
+        {"role": "user", "content": "Q1"},
+        {"role": "assistant", "content": "A1"},
+        {"role": "user", "content": "Q2"},
+        {"role": "assistant", "content": "A2"},
+        {"role": "user", "content": "Q3"},
+        {"role": "assistant", "content": "A3"},
+    ]
+    original_history = [msg.copy() for msg in history]
+
+    asyncio.run(
+        service.generate_answer(
+            "Новый вопрос",
+            history=history,
+            history_limit=4,
+        )
+    )
+
+    mock_create.assert_awaited_once()
+    _, kwargs = mock_create.await_args
+    messages = kwargs["messages"]
+
+    assert messages[0]["role"] == "system"
+    assert messages[1:-1] == history[-4:]
+    assert messages[-1]["role"] == "user"
+    assert "Вопрос пользователя:" in messages[-1]["content"]
+    assert "Контекст (из базы знаний):" in messages[-1]["content"]
+    assert history == original_history

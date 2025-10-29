@@ -1,5 +1,7 @@
 
 import asyncio
+from collections import defaultdict
+from typing import DefaultDict
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -31,6 +33,9 @@ bot = Bot(
 dp = Dispatcher(storage=MemoryStorage())
 
 consented_users: set[int] = set()
+conversation_history: DefaultDict[int, list[dict[str, str]]] = defaultdict(list)
+
+HISTORY_LIMIT = 10
 
 WELCOME_MESSAGE = (
     "👋 <b>Привет! Я LegalBot</b> — ассистент по вопросам недвижимости.\n\n"
@@ -91,6 +96,8 @@ def setup_services() -> None:
 @dp.message(Command("start"))
 async def cmd_start(m: Message):
     user_id = m.from_user.id if m.from_user else None
+    if user_id is not None:
+        conversation_history.pop(user_id, None)
     if _user_has_consented(user_id):
         await m.answer(WELCOME_MESSAGE)
         return
@@ -120,6 +127,9 @@ async def cmd_start(m: Message):
 
 @dp.message(Command("help"))
 async def cmd_help(m: Message):
+    user_id = m.from_user.id if m.from_user else None
+    if user_id is not None:
+        conversation_history.pop(user_id, None)
     if not await _ensure_user_consent(m):
         return
 
@@ -135,6 +145,9 @@ async def cmd_help(m: Message):
 
 @dp.message(Command("consultation"))
 async def cmd_consultation(m: Message, state: FSMContext):
+    user_id = m.from_user.id if m.from_user else None
+    if user_id is not None:
+        conversation_history.pop(user_id, None)
     if not await _ensure_user_consent(m):
         return
 
@@ -205,8 +218,14 @@ async def any_text(
         return
 
     q = m.text.strip()
+    user_id = m.from_user.id if m.from_user else None
+    history = conversation_history[user_id] if user_id is not None else []
     await m.chat.do("typing")
-    answer_result = await answer_service.generate_answer(q)
+    answer_result = await answer_service.generate_answer(
+        q,
+        history=history,
+        history_limit=HISTORY_LIMIT,
+    )
     interaction_logger.log(
         user_id=m.from_user.id,
         username=m.from_user.username,
@@ -216,6 +235,11 @@ async def any_text(
         model=answer_service.model,
         status=answer_result.status,
     )
+    if user_id is not None:
+        history.append({"role": "user", "content": q})
+        history.append({"role": "assistant", "content": answer_result.text})
+        if HISTORY_LIMIT > 0 and len(history) > HISTORY_LIMIT:
+            del history[:-HISTORY_LIMIT]
     await m.answer(
         f"<b>Вопрос:</b> {q}\n\n"
         f"{answer_result.text}\n\n"
@@ -239,6 +263,7 @@ async def consent_no(callback: CallbackQuery):
     user_id = callback.from_user.id if callback.from_user else None
     if user_id is not None:
         consented_users.discard(user_id)
+        conversation_history.pop(user_id, None)
 
     await callback.answer("Без согласия мы не можем продолжить работу.")
     if callback.message:
