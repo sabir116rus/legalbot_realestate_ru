@@ -40,6 +40,25 @@ consent_lock = asyncio.Lock()
 
 HISTORY_LIMIT = 10
 
+NEW_ASK_HINT = "ℹ️ Нужно начать новый вопрос без контекста? Используйте /new_ask."
+NEW_ASK_CONFIRMATION_TEXT = (
+    "🔄 История переписки очищена. Следующий вопрос будет обработан без предыдущего контекста."
+)
+
+NEW_ASK_KEYBOARD = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Очистить контекст", callback_data="new_ask_reset")]
+    ]
+)
+
+
+def with_new_ask_hint(text: str) -> str:
+    if NEW_ASK_HINT in text:
+        return text
+    suffix = "\n" if text.endswith("\n") else "\n\n"
+    return f"{text}{suffix}{NEW_ASK_HINT}"
+
+
 WELCOME_MESSAGE = (
     "👋 <b>Привет! Я LegalBot</b> — ассистент по вопросам недвижимости.\n\n"
     "🧭 <b>Чем могу помочь:</b>\n"
@@ -161,6 +180,37 @@ async def cmd_consultation(m: Message, state: FSMContext):
     )
 
 
+@dp.message(Command("new_ask"))
+async def cmd_new_ask(m: Message):
+    user_id = m.from_user.id if m.from_user else None
+    if user_id is not None:
+        conversation_history.pop(user_id, None)
+    if not await _ensure_user_consent(m):
+        return
+
+    await m.answer(
+        NEW_ASK_CONFIRMATION_TEXT,
+        reply_markup=NEW_ASK_KEYBOARD,
+    )
+
+
+@dp.callback_query(F.data == "new_ask_reset")
+async def new_ask_reset(callback: CallbackQuery):
+    user_id = callback.from_user.id if callback.from_user else None
+    if user_id is not None:
+        conversation_history.pop(user_id, None)
+    if not _user_has_consented(user_id):
+        await callback.answer("Сначала подтвердите согласие в /start.")
+        return
+
+    await callback.answer("История очищена.")
+    if callback.message:
+        await callback.message.answer(
+            NEW_ASK_CONFIRMATION_TEXT,
+            reply_markup=NEW_ASK_KEYBOARD,
+        )
+
+
 @dp.message(ConsultationForm.name, F.text)
 async def consultation_full_name(m: Message, state: FSMContext):
     if not await _ensure_user_consent(m):
@@ -253,8 +303,10 @@ async def any_text(
         if HISTORY_LIMIT > 0 and len(history) > HISTORY_LIMIT:
             del history[:-HISTORY_LIMIT]
     await m.answer(
-        f"{answer_result.text}\n\n"
-        "<i>Ответ носит информационный характер и не является юридической консультацией.</i>"
+        with_new_ask_hint(
+            f"{answer_result.text}\n\n"
+            "<i>Ответ носит информационный характер и не является юридической консультацией.</i>"
+        )
     )
 
 
@@ -292,6 +344,7 @@ async def setup_bot_menu() -> None:
             BotCommand(command="start", description="Начать работу с ботом"),
             BotCommand(command="help", description="Получить подсказки"),
             BotCommand(command="consultation", description="Оставить заявку на консультацию"),
+            BotCommand(command="new_ask", description="Очистить контекст для нового вопроса"),
         ]
     )
     await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
