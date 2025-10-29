@@ -48,10 +48,7 @@ def test_generate_answer_uses_context_and_strips_markdown():
     result = asyncio.run(service.generate_answer("Что с арендой?"))
 
     assert isinstance(result, AnswerResult)
-    assert result.text.startswith("Привет, вот ответ.")
-    assert "Рекомендации:" in result.text
-    assert "Возможные пути решения:" in result.text
-    assert "Правовые основания:" in result.text
+    assert result.text == "Привет, вот ответ."
     assert result.top_score == 95
     assert result.status == "ok"
 
@@ -91,7 +88,7 @@ def test_generate_answer_handles_exceptions():
 
 
 @pytest.mark.asyncio
-def test_generate_answer_adds_missing_sections():
+def test_generate_answer_preserves_model_output():
     kb = Mock()
     kb.query.return_value = []
 
@@ -119,9 +116,7 @@ def test_generate_answer_adds_missing_sections():
 
     result = asyncio.run(service.generate_answer("Вопрос"))
 
-    assert "Рекомендации:" in result.text
-    assert "Возможные пути решения:" in result.text
-    assert "Правовые основания:" in result.text
+    assert result.text == response_content
 
 
 @pytest.mark.asyncio
