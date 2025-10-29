@@ -48,7 +48,13 @@ def test_generate_answer_uses_context_and_strips_markdown():
     result = asyncio.run(service.generate_answer("Что с арендой?"))
 
     assert isinstance(result, AnswerResult)
-    assert result.text == "Привет, вот ответ."
+    assert result.text.startswith("Привет, вот ответ.")
+    assert "Суть ситуации:" in result.text
+    assert "Что нужно уточнить:" in result.text
+    assert "Рекомендации:" in result.text
+    assert "Возможные пути решения:" in result.text
+    assert "Правовые основания:" in result.text
+    assert "Предупреждения и ограничения:" in result.text
     assert result.top_score == 95
     assert result.status == "ok"
 
@@ -88,7 +94,7 @@ def test_generate_answer_handles_exceptions():
 
 
 @pytest.mark.asyncio
-def test_generate_answer_does_not_add_missing_sections():
+def test_generate_answer_adds_missing_sections_with_placeholders():
     kb = Mock()
     kb.query.return_value = []
 
@@ -116,48 +122,15 @@ def test_generate_answer_does_not_add_missing_sections():
 
     result = asyncio.run(service.generate_answer("Вопрос"))
 
-    assert "Суть ситуации:" not in result.text
-    assert "Что нужно уточнить:" not in result.text
-    assert "Рекомендации:" not in result.text
-    assert "Возможные пути решения:" not in result.text
-    assert "Правовые основания:" not in result.text
-    assert "Предупреждения и ограничения:" not in result.text
-
-
-@pytest.mark.asyncio
-def test_generate_answer_removes_empty_sections():
-    kb = Mock()
-    kb.query.return_value = []
-
-    response_content = (
-        "Вступление\n\nСуть ситуации: Описание ситуации\n\nРекомендации:\n\n"
-        "Возможные пути решения:   \n  \nПравовые основания: Статья 1\n"
+    assert "Суть ситуации:\n- Раздел не был сформирован моделью." in result.text
+    assert (
+        "Что нужно уточнить:\n- Уточните region, object_type, role, mortgage, minors_involved."
+        in result.text
     )
-    mock_create = AsyncMock(
-        return_value=SimpleNamespace(
-            choices=[
-                SimpleNamespace(
-                    message=SimpleNamespace(content=response_content)
-                )
-            ]
-        )
+    assert "Рекомендации:\n- Раздел не был сформирован моделью." in result.text
+    assert "Возможные пути решения:\n- Раздел не был сформирован моделью." in result.text
+    assert "Правовые основания:\n- Раздел не был сформирован моделью." in result.text
+    assert (
+        "Предупреждения и ограничения:\n- Раздел не был сформирован моделью. Помните, что ассистент не заменяет юриста и информация требует проверки."
+        in result.text
     )
-    client = SimpleNamespace(
-        chat=SimpleNamespace(completions=SimpleNamespace(create=mock_create))
-    )
-
-    service = AnswerService(
-        knowledge_base=kb,
-        openai_client=client,
-        model="gpt-test",
-        system_prompt="Системное сообщение",
-        rag_top_k=3,
-    )
-
-    result = asyncio.run(service.generate_answer("Вопрос"))
-
-    assert "Вступление" in result.text
-    assert "Суть ситуации:\nОписание ситуации" in result.text
-    assert "Рекомендации:" not in result.text
-    assert "Возможные пути решения:" not in result.text
-    assert "Правовые основания:\nСтатья 1" in result.text
