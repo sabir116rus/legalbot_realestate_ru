@@ -121,7 +121,7 @@ async def cmd_start(m: Message):
     if user_id is not None:
         conversation_history.pop(user_id, None)
     if _user_has_consented(user_id):
-        await m.answer(with_new_ask_hint(WELCOME_MESSAGE))
+        await m.answer(WELCOME_MESSAGE)
         return
 
     keyboard = InlineKeyboardMarkup(
@@ -156,14 +156,12 @@ async def cmd_help(m: Message):
         return
 
     await m.answer(
-        with_new_ask_hint(
-            "Как задать вопрос:\n"
-            "• Какие документы нужны для продажи квартиры?\n"
-            "• Чем отличается аренда и найм?\n\n"
-            "Подсказки:\n"
-            "— Пиши конкретно и добавляй детали (цель, статус объекта, ипотека и т. д.).\n"
-            "— Я всегда добавлю «Правовые основания», если они есть в базе."
-        )
+        "Как задать вопрос:\n"
+        "• Какие документы нужны для продажи квартиры?\n"
+        "• Чем отличается аренда и найм?\n\n"
+        "Подсказки:\n"
+        "— Пиши конкретно и добавляй детали (цель, статус объекта, ипотека и т. д.).\n"
+        "— Я всегда добавлю «Правовые основания», если они есть в базе."
     )
 
 
@@ -177,10 +175,8 @@ async def cmd_consultation(m: Message, state: FSMContext):
 
     await state.set_state(ConsultationForm.name)
     await m.answer(
-        with_new_ask_hint(
-            "📝 <b>Запрос консультации</b>\n"
-            "Пожалуйста, укажите своё имя."
-        )
+        "📝 <b>Запрос консультации</b>\n"
+        "Пожалуйста, укажите своё имя."
     )
 
 
@@ -193,7 +189,7 @@ async def cmd_new_ask(m: Message):
         return
 
     await m.answer(
-        with_new_ask_hint(NEW_ASK_CONFIRMATION_TEXT),
+        NEW_ASK_CONFIRMATION_TEXT,
         reply_markup=NEW_ASK_KEYBOARD,
     )
 
@@ -210,7 +206,7 @@ async def new_ask_reset(callback: CallbackQuery):
     await callback.answer("История очищена.")
     if callback.message:
         await callback.message.answer(
-            with_new_ask_hint(NEW_ASK_CONFIRMATION_TEXT),
+            NEW_ASK_CONFIRMATION_TEXT,
             reply_markup=NEW_ASK_KEYBOARD,
         )
 
@@ -223,9 +219,7 @@ async def consultation_full_name(m: Message, state: FSMContext):
 
     await state.update_data(name=m.text.strip())
     await state.set_state(ConsultationForm.contact)
-    await m.answer(
-        with_new_ask_hint("Как с вами связаться? Оставьте телефон, email или ник в Telegram.")
-    )
+    await m.answer("Как с вами связаться? Оставьте телефон, email или ник в Telegram.")
 
 
 @dp.message(ConsultationForm.contact, F.text)
@@ -238,12 +232,12 @@ async def consultation_contact(m: Message, state: FSMContext):
     try:
         contact = validate_contact(raw_contact)
     except ContactValidationError as exc:
-        await m.answer(with_new_ask_hint(str(exc)))
+        await m.answer(str(exc))
         return
 
     await state.update_data(contact=contact)
     await state.set_state(ConsultationForm.request)
-    await m.answer(with_new_ask_hint("Кратко опишите, какая помощь нужна."))
+    await m.answer("Кратко опишите, какая помощь нужна.")
 
 
 @dp.message(ConsultationForm.request, F.text)
@@ -270,10 +264,8 @@ async def consultation_request(
     )
 
     await m.answer(
-        with_new_ask_hint(
-            "Спасибо! Заявка на консультацию сохранена. 👌\n"
-            "Наш специалист свяжется с вами по указанным контактам."
-        )
+        "Спасибо! Заявка на консультацию сохранена. 👌\n"
+        "Наш специалист свяжется с вами по указанным контактам."
     )
 
 
@@ -328,7 +320,7 @@ async def consent_yes(callback: CallbackQuery):
 
     await callback.answer("Согласие получено. Спасибо!")
     if callback.message:
-        await callback.message.answer(with_new_ask_hint(WELCOME_MESSAGE))
+        await callback.message.answer(WELCOME_MESSAGE)
 
 
 @dp.callback_query(F.data == "consent_no")
@@ -343,9 +335,7 @@ async def consent_no(callback: CallbackQuery):
     await callback.answer("Без согласия мы не можем продолжить работу.")
     if callback.message:
         await callback.message.answer(
-            with_new_ask_hint(
-                "Жаль, что мы не сможем продолжить. Если передумаешь, вернись в /start."
-            )
+            "Жаль, что мы не сможем продолжить. Если передумаешь, вернись в /start."
         )
 
 async def setup_bot_menu() -> None:
