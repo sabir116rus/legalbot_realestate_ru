@@ -7,3 +7,6 @@ rapidfuzz>=3.9.6
 tiktoken>=0.7.0
 pytest>=8.3.2
 pytest-asyncio>=0.23.7
+google-api-python-client>=2.137.0
+google-auth>=2.35.0
+google-auth-httplib2>=0.2.0
