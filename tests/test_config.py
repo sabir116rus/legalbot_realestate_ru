@@ -34,6 +34,7 @@ def test_config_loads_with_env_and_temp_prompt(tmp_path, monkeypatch):
     assert cfg.log_path == data_dir / "log.csv"
     assert cfg.log_path.parent == data_dir
     assert cfg.log_path.parent.exists()
+    assert cfg.consent_store_path == data_dir / "consents.json"
     assert cfg.privacy_policy_message == "custom message"
     assert cfg.privacy_policy_webapp_url == "https://test.example/app"
 
