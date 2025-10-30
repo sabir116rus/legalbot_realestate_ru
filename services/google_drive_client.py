@@ -70,13 +70,44 @@ class GoogleDriveClient:
         )
 
         try:
-            response = service.files().list(
-                q=query,
-                spaces="drive",
-                fields="files(id)",
-                supportsAllDrives=True,
-                includeItemsFromAllDrives=True,
-            ).execute()
+            folder_metadata = (
+                service.files()
+                .get(
+                    fileId=folder_id,
+                    fields="id, driveId",
+                    supportsAllDrives=True,
+                )
+                .execute()
+            )
+        except HttpError as exc:
+            LOGGER.error(
+                "Failed to access Google Drive folder '%s': %s", folder_id, exc
+            )
+            return
+        except Exception as exc:  # pragma: no cover - unexpected failures
+            LOGGER.error(
+                "Unexpected error retrieving Google Drive folder '%s': %s",
+                folder_id,
+                exc,
+            )
+            return
+
+        drive_id = folder_metadata.get("driveId")
+
+        try:
+            list_kwargs: dict[str, Any] = {
+                "q": query,
+                "spaces": "drive",
+                "fields": "files(id)",
+                "supportsAllDrives": True,
+            }
+
+            if drive_id:
+                list_kwargs.update({"corpora": "drive", "driveId": drive_id})
+            else:  # fall back to all drives for My Drive or unknown parents
+                list_kwargs["includeItemsFromAllDrives"] = True
+
+            response = service.files().list(**list_kwargs).execute()
             files = response.get("files", [])
         except HttpError as exc:
             LOGGER.error("Failed to query Google Drive files: %s", exc)
