@@ -7,7 +7,6 @@ import pytest
 from services.answer_service import AnswerService, AnswerResult
 
 
-@pytest.mark.asyncio
 def test_generate_answer_uses_context_and_strips_markdown():
     knowledge_hits = [
         {
@@ -61,7 +60,6 @@ def test_generate_answer_uses_context_and_strips_markdown():
     assert "[ID:1]" in messages[1]["content"]
 
 
-@pytest.mark.asyncio
 def test_generate_answer_handles_exceptions():
     kb = Mock()
     kb.query.return_value = []
@@ -87,7 +85,6 @@ def test_generate_answer_handles_exceptions():
     assert "Техническая ошибка" in result.text
 
 
-@pytest.mark.asyncio
 def test_generate_answer_preserves_model_output():
     kb = Mock()
     kb.query.return_value = []
@@ -119,7 +116,6 @@ def test_generate_answer_preserves_model_output():
     assert result.text == response_content
 
 
-@pytest.mark.asyncio
 def test_generate_answer_includes_history_in_order():
     kb = Mock()
     kb.query.return_value = []
