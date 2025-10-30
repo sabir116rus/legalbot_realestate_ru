@@ -1,29 +1,38 @@
 
 import asyncio
+import warnings
 from collections import defaultdict
 from typing import DefaultDict
+
 from aiogram import Bot, Dispatcher, F
+from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import (
-    Message,
     BotCommand,
-    MenuButtonCommands,
     CallbackQuery,
-    InlineKeyboardMarkup,
     InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    MenuButtonCommands,
+    Message,
     WebAppInfo,
 )
-from aiogram.client.default import DefaultBotProperties
 from openai import AsyncOpenAI
 
 from config import Config
-from services import AnswerService, ConsultationLogger, ConsentStore, InteractionLogger
-from services.google_drive_client import GoogleDriveClient
-from services.contact_validation import ContactValidationError, validate_contact
 from rag import KnowledgeBase
+from services import AnswerService, ConsultationLogger, ConsentStore, InteractionLogger
+from services.contact_validation import ContactValidationError, validate_contact
+from services.google_drive_client import GoogleDriveClient
+
+
+warnings.filterwarnings(
+    "ignore",
+    category=FutureWarning,
+    module="google.api_core._python_version_support",
+)
 
 
 config = Config.load()
