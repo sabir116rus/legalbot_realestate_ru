@@ -73,7 +73,9 @@ class GoogleDriveClient:
             response = service.files().list(
                 q=query,
                 spaces="drive",
-                fields="files(id)"
+                fields="files(id)",
+                supportsAllDrives=True,
+                includeItemsFromAllDrives=True,
             ).execute()
             files = response.get("files", [])
         except HttpError as exc:
@@ -88,14 +90,27 @@ class GoogleDriveClient:
         if files:
             file_id = files[0]["id"]
             try:
-                service.files().update(fileId=file_id, media_body=media, supportsAllDrives=False).execute()
+                service.files().update(
+                    fileId=file_id,
+                    media_body=media,
+                    supportsAllDrives=True,
+                ).execute()
                 LOGGER.info("Updated Google Drive file '%s' (%s)", upload_name, file_id)
             except HttpError as exc:
                 LOGGER.error("Failed to update Google Drive file '%s': %s", upload_name, exc)
         else:
             metadata = {"name": upload_name, "parents": [folder_id]}
             try:
-                created = service.files().create(body=metadata, media_body=media, fields="id", supportsAllDrives=False).execute()
+                created = (
+                    service.files()
+                    .create(
+                        body=metadata,
+                        media_body=media,
+                        fields="id",
+                        supportsAllDrives=True,
+                    )
+                    .execute()
+                )
                 LOGGER.info("Created Google Drive file '%s' (%s)", upload_name, created.get("id"))
             except HttpError as exc:
                 LOGGER.error("Failed to create Google Drive file '%s': %s", upload_name, exc)
