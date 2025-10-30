@@ -46,13 +46,6 @@ NEW_ASK_CONFIRMATION_TEXT = (
     "🔄 История переписки очищена. Следующий вопрос будет обработан без предыдущего контекста."
 )
 
-NEW_ASK_KEYBOARD = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [InlineKeyboardButton(text="🔄 Очистить контекст", callback_data="new_ask_reset")]
-    ]
-)
-
-
 def with_new_ask_hint(text: str) -> str:
     if NEW_ASK_HINT in text:
         return text
@@ -201,27 +194,7 @@ async def cmd_new_ask(m: Message):
     if not await _ensure_user_consent(m):
         return
 
-    await m.answer(
-        NEW_ASK_CONFIRMATION_TEXT,
-        reply_markup=NEW_ASK_KEYBOARD,
-    )
-
-
-@dp.callback_query(F.data == "new_ask_reset")
-async def new_ask_reset(callback: CallbackQuery):
-    user_id = callback.from_user.id if callback.from_user else None
-    if user_id is not None:
-        conversation_history.pop(user_id, None)
-    if not _user_has_consented(user_id):
-        await callback.answer("Сначала подтвердите согласие в /start.")
-        return
-
-    await callback.answer("История очищена.")
-    if callback.message:
-        await callback.message.answer(
-            NEW_ASK_CONFIRMATION_TEXT,
-            reply_markup=NEW_ASK_KEYBOARD,
-        )
+    await m.answer(NEW_ASK_CONFIRMATION_TEXT)
 
 
 @dp.message(ConsultationForm.name, F.text)
