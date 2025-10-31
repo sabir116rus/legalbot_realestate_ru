@@ -8,7 +8,7 @@
 
 1) Создай бота у @BotFather и получи **TELEGRAM_BOT_TOKEN**.  
 2) Получи ключ OpenAI и укажи **OPENAI_API_KEY**.  
-3) Скопируй `.env.example` в `.env` и заполни значения.  
+3) Скопируй `.env.example` в `.env` и заполни значения: обязательно укажи токены OpenAI и Telegram, при необходимости отредактируй `PRIVACY_POLICY_MESSAGE` и `PRIVACY_POLICY_WEBAPP_URL`, а для синхронизации с Google Drive добавь `GOOGLE_DRIVE_*` переменные (папки и файлы).
 4) Установи зависимости (включают `aiogram`, `aiohttp`, `rapidfuzz`, `tiktoken`, а также `pytest` и `pytest-asyncio` для тестов):
    ```bash
    pip install -r requirements.txt
