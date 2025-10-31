@@ -55,13 +55,17 @@ legalbot_realestate_ru/
 │  ├─ answer_service.py              # бизнес-логика генерации ответов через OpenAI и RAG
 │  ├─ interaction_logger.py          # запись вопросов/ответов в CSV с токенами и статусом
 │  ├─ consultation_logger.py         # хранение заявок на консультации в отдельном CSV
+│  ├─ contact_validation.py          # проверка и нормализация контактов для заявок
+│  ├─ consent_store.py               # асинхронное хранилище согласий пользователей
+│  ├─ google_drive_client.py         # клиент для выгрузки файлов и таблиц в Google Drive
 │  └─ webapp/
 │     ├─ privacy_policy.html         # статическая страница политики конфиденциальности
 │     └─ privacy_policy_webapp.py    # минимальное веб-приложение aiohttp для выдачи HTML
 ├─ data/
 │  ├─ knowledge.csv                  # база знаний (CSV)
 │  ├─ log.csv                        # лог вопросов/ответов (создаётся автоматически)
-│  └─ consultations.csv              # заявки на консультации (создаётся автоматически)
+│  ├─ consultations.csv              # заявки на консультации (создаётся автоматически)
+│  └─ consents.json                  # согласия пользователей на обработку данных
 └─ tests/                            # автотесты pytest и pytest-asyncio
 ```
 
@@ -72,6 +76,8 @@ legalbot_realestate_ru/
 - `InteractionLogger` (см. `services/interaction_logger.py`) создаёт CSV‑лог, добавляет заголовки при первом запуске, сохраняет обрезанные ответы, top_score и количество токенов (через `tiktoken`) и, при наличии настроек Google Drive, синхронизирует `log.csv` в заданную папку.
 - `ConsultationLogger` (см. `services/consultation_logger.py`) сохраняет заявки на живую консультацию в файл `data/consultations.csv` и может автоматически выгружать обновления в Google Drive.
 - `ConsentStore` (см. `services/consent_store.py`) поддерживает персистентное хранение согласий пользователей на обработку данных в файле `data/consents.json`. Согласие требуется для всех действий, включая вопросы без команд.
+- `validate_contact` (см. `services/contact_validation.py`) нормализует телефоны, email и Telegram‑ники, возвращая очищенное значение либо выбрасывая `ContactValidationError`. Используется в диалоге `/consultation`, чтобы записывать только корректные контакты.
+- `GoogleDriveClient` (см. `services/google_drive_client.py`) инкапсулирует загрузку CSV и обновление Google Sheets по сервисному аккаунту, позволяя логам, отчётам и заявкам автоматически синхронизироваться с Drive.
 
 ### Структура ответов бота
 
@@ -95,6 +101,8 @@ legalbot_realestate_ru/
 3. На последнем шаге пользователь описывает свой запрос.
 
 После получения всех ответов бот подтверждает сохранение заявки и записывает данные в `data/consultations.csv`. Таблица содержит столбцы `timestamp`, `user_id`, `username`, `full_name`, `contact`, `request`. Файл можно открыть в Excel/Google Sheets, передать юристу и использовать для обратной связи с пользователем.
+
+Каждый контакт перед сохранением обрабатывается функцией `validate_contact`, которая приводит телефон к международному формату, проверяет адрес электронной почты или Telegram‑ник и возвращает понятное сообщение об ошибке, если данные нельзя распознать.
 
 ## Утилиты
 
@@ -198,6 +206,7 @@ export PRIVACY_POLICY_WEBAPP_URL="http://localhost:8080/privacy-policy"
 
 - `InteractionLogger` и `ConsultationLogger` обновляют соответствующие предсозданные Google Таблицы после каждой записи.
 - `evaluate_csv_coverage.py` выгружает отчёт и, при использовании `--out`, обновляет экспорт (таблица или файл) в папке `Reports`.
+- Все операции с Drive выполняются через `GoogleDriveClient`, который переиспользует одни и те же OAuth‑учётные данные и умеет обновлять как обычные файлы, так и Google Sheets.
 - Если переменные не заданы или API недоступен, логирование продолжится локально без ошибок.
 
 ## Оценка покрытия
