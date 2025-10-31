@@ -25,6 +25,9 @@ class Config:
     google_drive_logs_folder_id: Optional[str]
     google_drive_consultations_folder_id: Optional[str]
     google_drive_reports_folder_id: Optional[str]
+    google_drive_logs_file_id: Optional[str]
+    google_drive_consultations_file_id: Optional[str]
+    google_drive_reports_file_id: Optional[str]
 
     @classmethod
     def load(cls, *, allow_missing: bool = False) -> "Config":
@@ -79,6 +82,11 @@ class Config:
             "GOOGLE_DRIVE_CONSULTATIONS_FOLDER_ID"
         )
         google_drive_reports_folder_id = os.getenv("GOOGLE_DRIVE_REPORTS_FOLDER_ID")
+        google_drive_logs_file_id = os.getenv("GOOGLE_DRIVE_LOGS_FILE_ID")
+        google_drive_consultations_file_id = os.getenv(
+            "GOOGLE_DRIVE_CONSULTATIONS_FILE_ID"
+        )
+        google_drive_reports_file_id = os.getenv("GOOGLE_DRIVE_REPORTS_FILE_ID")
 
         return cls(
             telegram_bot_token=telegram_bot_token or "",
@@ -96,4 +104,7 @@ class Config:
             google_drive_logs_folder_id=google_drive_logs_folder_id,
             google_drive_consultations_folder_id=google_drive_consultations_folder_id,
             google_drive_reports_folder_id=google_drive_reports_folder_id,
+            google_drive_logs_file_id=google_drive_logs_file_id,
+            google_drive_consultations_file_id=google_drive_consultations_file_id,
+            google_drive_reports_file_id=google_drive_reports_file_id,
         )

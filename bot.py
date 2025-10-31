@@ -117,11 +117,15 @@ def setup_services() -> None:
         config.log_path,
         drive_client=drive_client,
         drive_folder_id=config.google_drive_logs_folder_id,
+        drive_file_id=config.google_drive_logs_file_id,
+        drive_file_id_env_var="GOOGLE_DRIVE_LOGS_FILE_ID",
     )
     consultation_logger = ConsultationLogger(
         config.consultation_log_path,
         drive_client=drive_client,
         drive_folder_id=config.google_drive_consultations_folder_id,
+        drive_file_id=config.google_drive_consultations_file_id,
+        drive_file_id_env_var="GOOGLE_DRIVE_CONSULTATIONS_FILE_ID",
     )
 
     dp.workflow_data.update(

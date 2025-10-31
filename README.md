@@ -131,11 +131,16 @@ export PRIVACY_POLICY_WEBAPP_URL="http://localhost:8080/privacy-policy"
    - `GOOGLE_DRIVE_LOGS_FOLDER_ID` — ID папки для основного лога `log.csv`;
    - `GOOGLE_DRIVE_CONSULTATIONS_FOLDER_ID` — ID папки для заявок `consultations.csv`;
    - `GOOGLE_DRIVE_REPORTS_FOLDER_ID` — ID папки для аналитических отчётов (текстовый отчёт и экспортируемый файл).
+   - `GOOGLE_DRIVE_LOGS_FILE_ID` — ID предсозданного файла `log.csv` внутри папки `Logs`;
+   - `GOOGLE_DRIVE_CONSULTATIONS_FILE_ID` — ID предсозданного `consultations.csv` в папке `Consultations`;
+   - `GOOGLE_DRIVE_REPORTS_FILE_ID` — ID предсозданного файла отчёта (например, `report.txt` или `report.csv`) в папке `Reports`.
 4. Убедитесь, что сервисный аккаунт видит соответствующие папки: откройте папку в браузере и в URL возьмите часть после `folders/` — это нужный идентификатор.
+
+Дополнительно вручную создайте пустые файлы в целевых папках и скопируйте их ID (часть URL после `/d/`). Эти идентификаторы нужно передать через переменные `GOOGLE_DRIVE_*_FILE_ID`, чтобы сервисный аккаунт мог обновлять содержимое без попытки создать новые объекты на "Моём диске".
 
 После настройки:
 
-- `InteractionLogger` и `ConsultationLogger` обновляют соответствующие файлы на Google Drive после каждой записи (создают новый файл при первом запуске, далее выполняют обновление содержимого).
+- `InteractionLogger` и `ConsultationLogger` обновляют соответствующие предсозданные файлы на Google Drive после каждой записи.
 - `evaluate_csv_coverage.py` загружает текстовый отчёт и, при использовании `--out`, обновляет экспортированный CSV/Markdown в папке для отчётов.
 - Если переменные не заданы или доступ к API недоступен, работа продолжается локально без ошибок.
 

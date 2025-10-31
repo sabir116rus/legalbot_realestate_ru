@@ -306,6 +306,8 @@ def _upload_report_to_drive(
     report_text: str,
     drive_client: Optional[GoogleDriveClient],
     folder_id: Optional[str],
+    *,
+    file_id: Optional[str] = None,
 ) -> None:
     if not drive_client or not folder_id or not drive_client.is_configured:
         return
@@ -323,6 +325,8 @@ def _upload_report_to_drive(
                 folder_id,
                 file_name="coverage_report.txt",
                 mime_type="text/plain",
+                file_id=file_id,
+                file_id_env_var="GOOGLE_DRIVE_REPORTS_FILE_ID",
             )
     finally:
         if tmp_path:
@@ -409,7 +413,12 @@ def main() -> None:
         else None
     )
 
-    _upload_report_to_drive(report_text, drive_client, config.google_drive_reports_folder_id)
+    _upload_report_to_drive(
+        report_text,
+        drive_client,
+        config.google_drive_reports_folder_id,
+        file_id=config.google_drive_reports_file_id,
+    )
 
     if args.out:
         out_path = args.out.expanduser()
@@ -426,6 +435,8 @@ def main() -> None:
             drive_client.upload_or_update_file(
                 out_path,
                 config.google_drive_reports_folder_id,
+                file_id=config.google_drive_reports_file_id,
+                file_id_env_var="GOOGLE_DRIVE_REPORTS_FILE_ID",
             )
 
 

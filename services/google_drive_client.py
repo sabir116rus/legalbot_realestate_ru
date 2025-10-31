@@ -8,13 +8,35 @@ from typing import Any, Optional
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from googleapiclient.http import MediaFileUpload
+from googleapiclient.http import MediaInMemoryUpload
 from google.oauth2 import service_account
 from google.oauth2.credentials import Credentials as UserCredentials
 
 LOGGER = logging.getLogger(__name__)
 
-DEFAULT_SCOPES = ["https://www.googleapis.com/auth/drive.file"]
+DEFAULT_SCOPES = ["https://www.googleapis.com/auth/drive"]
+
+
+def upload_csv_content(
+    service: Any,
+    file_id: str,
+    content: bytes | str,
+    *,
+    mime_type: str = "text/csv",
+) -> str | None:
+    payload = content.encode("utf-8") if isinstance(content, str) else content
+
+    media = MediaInMemoryUpload(payload, mimetype=mime_type, resumable=False)
+    try:
+        updated = (
+            service.files()
+            .update(fileId=file_id, media_body=media, supportsAllDrives=True)
+            .execute()
+        )
+        return updated.get("id")
+    except HttpError as e:  # pragma: no cover - network/API failures
+        LOGGER.error("Failed to update Google Drive file '%s': %s", file_id, e)
+        return None
 
 
 class GoogleDriveClient:
@@ -44,6 +66,8 @@ class GoogleDriveClient:
         *,
         file_name: Optional[str] = None,
         mime_type: Optional[str] = None,
+        file_id: Optional[str] = None,
+        file_id_env_var: Optional[str] = None,
     ) -> None:
         """Create or update a file in the provided Drive folder."""
 
@@ -94,57 +118,67 @@ class GoogleDriveClient:
 
         drive_id = folder_metadata.get("driveId")
 
-        try:
-            list_kwargs: dict[str, Any] = {
-                "q": query,
-                "spaces": "drive",
-                "fields": "files(id)",
-                "supportsAllDrives": True,
-            }
+        files: list[dict[str, Any]] = []
 
-            if drive_id:
-                list_kwargs.update({"corpora": "drive", "driveId": drive_id})
-            else:  # fall back to all drives for My Drive or unknown parents
-                list_kwargs["includeItemsFromAllDrives"] = True
+        if not file_id:
+            try:
+                list_kwargs: dict[str, Any] = {
+                    "q": query,
+                    "spaces": "drive",
+                    "fields": "files(id)",
+                    "supportsAllDrives": True,
+                }
 
-            response = service.files().list(**list_kwargs).execute()
-            files = response.get("files", [])
-        except HttpError as exc:
-            LOGGER.error("Failed to query Google Drive files: %s", exc)
+                if drive_id:
+                    list_kwargs.update({"corpora": "drive", "driveId": drive_id})
+                else:  # fall back to all drives for My Drive or unknown parents
+                    list_kwargs["includeItemsFromAllDrives"] = True
+
+                response = service.files().list(**list_kwargs).execute()
+                files = response.get("files", [])
+            except HttpError as exc:
+                LOGGER.error("Failed to query Google Drive files: %s", exc)
+                return
+            except Exception as exc:  # pragma: no cover - unexpected failures
+                LOGGER.error("Unexpected error during Google Drive query: %s", exc)
+                return
+
+        file_content = resolved_path.read_bytes()
+
+        if file_id:
+            updated_id = upload_csv_content(
+                service,
+                file_id,
+                file_content,
+                mime_type=detected_mime_type,
+            )
+            if updated_id:
+                LOGGER.info("Updated Google Drive file '%s' (%s)", upload_name, updated_id)
             return
-        except Exception as exc:  # pragma: no cover - unexpected failures
-            LOGGER.error("Unexpected error during Google Drive query: %s", exc)
-            return
-
-        media = MediaFileUpload(str(resolved_path), mimetype=detected_mime_type, resumable=False)
 
         if files:
-            file_id = files[0]["id"]
-            try:
-                service.files().update(
-                    fileId=file_id,
-                    media_body=media,
-                    supportsAllDrives=True,
-                ).execute()
-                LOGGER.info("Updated Google Drive file '%s' (%s)", upload_name, file_id)
-            except HttpError as exc:
-                LOGGER.error("Failed to update Google Drive file '%s': %s", upload_name, exc)
-        else:
-            metadata = {"name": upload_name, "parents": [folder_id]}
-            try:
-                created = (
-                    service.files()
-                    .create(
-                        body=metadata,
-                        media_body=media,
-                        fields="id",
-                        supportsAllDrives=True,
-                    )
-                    .execute()
-                )
-                LOGGER.info("Created Google Drive file '%s' (%s)", upload_name, created.get("id"))
-            except HttpError as exc:
-                LOGGER.error("Failed to create Google Drive file '%s': %s", upload_name, exc)
+            existing_id = files[0]["id"]
+            updated_id = upload_csv_content(
+                service,
+                existing_id,
+                file_content,
+                mime_type=detected_mime_type,
+            )
+            if updated_id:
+                LOGGER.info("Updated Google Drive file '%s' (%s)", upload_name, updated_id)
+            return
+
+        env_hint = (
+            f" и укажите {file_id_env_var} в .env"
+            if file_id_env_var
+            else " и укажите соответствующий идентификатор файла в настройках"
+        )
+        LOGGER.error(
+            "Нельзя создать новый файл на 'Мой диск' от сервисного аккаунта. "
+            "Создайте пустой %s вручную%s.",
+            upload_name,
+            env_hint,
+        )
 
     def _ensure_service(self) -> Any:
         if self._service is not None:
