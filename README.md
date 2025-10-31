@@ -160,7 +160,7 @@ export PRIVACY_POLICY_WEBAPP_URL="http://localhost:8080/privacy-policy"
 
 **Шаг 6. Предсоздать Google Таблицы и получить их ID**
 
-- Внутри каждой папки создайте по Google Таблице: `log` (для логов), `consultations` (для заявок), `report` (для отчётов).
+- Внутри каждой папки создайте по Google Таблице: `log` (таблица для логов), `consultations` (таблицадля заявок), `report` (файл/таблица для отчётов).
 - Откройте каждую таблицу и скопируйте её ID из адресной строки: часть между `/d/` и `/edit`.
 - Эти значения понадобятся для переменных `GOOGLE_DRIVE_LOGS_FILE_ID`, `GOOGLE_DRIVE_CONSULTATIONS_FILE_ID` и `GOOGLE_DRIVE_REPORTS_FILE_ID`.
 

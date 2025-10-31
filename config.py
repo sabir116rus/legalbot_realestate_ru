@@ -66,8 +66,7 @@ class Config:
         )
 
         privacy_policy_webapp_url = os.getenv(
-            "PRIVACY_POLICY_WEBAPP_URL",
-            "https://sabir116rus.github.io/legalbot-policy/",
+            "PRIVACY_POLICY_WEBAPP_URL"
         )
 
         google_drive_credentials_env = os.getenv("GOOGLE_DRIVE_CREDENTIALS_FILE")
