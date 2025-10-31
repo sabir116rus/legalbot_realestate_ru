@@ -122,27 +122,83 @@ export PRIVACY_POLICY_WEBAPP_URL="http://localhost:8080/privacy-policy"
 
 ## Интеграция с Google Drive
 
-Бот может автоматически синхронизировать CSV‑логи и аналитические отчёты с Google Drive. Используется сервисный аккаунт (или авторизованный токен), которому вы выдаёте доступ к нужным папкам.
+Бот может автоматически синхронизировать логи, заявки и отчёты с Google Drive. Для этого используется сервисный аккаунт, которому выдаются права на нужные папки и предсозданные таблицы.
 
-1. Создайте проект в [Google Cloud Console](https://console.cloud.google.com/), включите API Google Drive и создайте сервисный аккаунт.
-2. Скачайте JSON‑файл с ключом и сохраните его рядом с проектом. Поделитесь целевыми папками Google Drive с адресом сервисного аккаунта.
-3. Добавьте в `.env` переменные окружения:
-   - `GOOGLE_DRIVE_CREDENTIALS_FILE` — путь до JSON с сервисным аккаунтом или пользовательским токеном;
-   - `GOOGLE_DRIVE_LOGS_FOLDER_ID` — ID папки для основного лога `log.csv`;
-   - `GOOGLE_DRIVE_CONSULTATIONS_FOLDER_ID` — ID папки для заявок `consultations.csv`;
-   - `GOOGLE_DRIVE_REPORTS_FOLDER_ID` — ID папки для аналитических отчётов (текстовый отчёт и экспортируемый файл).
-   - `GOOGLE_DRIVE_LOGS_FILE_ID` — ID предсозданной Google Таблицы для лога внутри папки `Logs`;
-   - `GOOGLE_DRIVE_CONSULTATIONS_FILE_ID` — ID предсозданной Google Таблицы `consultations` в папке `Consultations`;
-   - `GOOGLE_DRIVE_REPORTS_FILE_ID` — ID предсозданного файла отчёта (например, Google Таблица или текстовый файл) в папке `Reports`.
-4. Убедитесь, что сервисный аккаунт видит соответствующие папки: откройте папку в браузере и в URL возьмите часть после `folders/` — это нужный идентификатор.
+**Шаг 1. Создать проект в Google Cloud**
 
-Дополнительно вручную создайте пустые Google Таблицы в целевых папках и скопируйте их ID (часть URL после `/d/`). Эти идентификаторы нужно передать через переменные `GOOGLE_DRIVE_*_FILE_ID`, чтобы сервисный аккаунт мог обновлять содержимое без попытки создать новые объекты на "Моём диске". Внутри каждой таблицы достаточно одного листа — данные из локальных CSV полностью заменяют содержимое листа при каждой синхронизации.
+- Откройте: <https://console.cloud.google.com>.
+- В шапке слева от «Google Cloud» нажмите на селектор проекта → **New Project / Новый проект**.
+- Введите имя (например, `legalbot-drive`) → **Create / Создать**.
+- Убедитесь, что выбран именно этот проект (снова проверьте селектор в шапке).
+
+**Шаг 2. Включить Google Drive API**
+
+- Левое меню: **APIs & Services → Enabled APIs & services**.
+- Нажмите **+ ENABLE APIS AND SERVICES**.
+- В поиске наберите «Google Drive API» → откройте карточку → **Enable**.
+
+**Шаг 3. Включить Google Sheets API**
+
+- В том же каталоге API найдите «Google Sheets API».
+- Откройте карточку и нажмите **Enable**, чтобы бот мог обновлять таблицы.
+
+**Шаг 4. Создать сервисный аккаунт и ключ JSON**
+
+- Левое меню: **IAM & Admin → Service Accounts**.
+- Нажмите **Create Service Account**.
+- Name: `drive-bot` (любое понятное значение) → **Create and Continue**. На шагах ролей можно ничего не добавлять.
+- **Done**.
+- В списке аккаунтов кликните по созданной записи → вкладка **Keys** → **Add key** → **Create new key**.
+- Тип: **JSON** → **Create** → сохранится файл вида `drive-bot-xxxxx.json`.
+- Скопируйте e-mail сервисного аккаунта вида `drive-bot@<project-id>.iam.gserviceaccount.com` — он пригодится для расшаривания папок.
+
+**Шаг 5. Поделиться папками на Google Drive с сервисным аккаунтом**
+
+- Откройте <https://drive.google.com>.
+- Найдите или создайте три папки (например, `Logs`, `Consultations`, `Reports`).
+- Для каждой папки: правая кнопка → **Share / Поделиться** → вставьте e-mail сервисного аккаунта → роль минимум **Editor / Редактор** → **Send / Отправить**.
+
+**Шаг 6. Предсоздать Google Таблицы и получить их ID**
+
+- Внутри каждой папки создайте по Google Таблице: `log` (для логов), `consultations` (для заявок), `report` (для отчётов).
+- Откройте каждую таблицу и скопируйте её ID из адресной строки: часть между `/d/` и `/edit`.
+- Эти значения понадобятся для переменных `GOOGLE_DRIVE_LOGS_FILE_ID`, `GOOGLE_DRIVE_CONSULTATIONS_FILE_ID` и `GOOGLE_DRIVE_REPORTS_FILE_ID`.
+
+**Шаг 7. Вытащить ID папок**
+
+- Откройте каждую папку в браузере.
+- Скопируйте из URL всё после `folders/` до следующего разделителя — это ID папки.
+- Запишите три идентификатора: для `Logs`, `Consultations`, `Reports`.
+
+**Шаг 8. Положить ключ и настроить `.env`**
+
+- Переместите скачанный JSON с ключом в каталог проекта (например, `./secrets/drive-bot.json`). На сервере ограничьте права чтения (например, `chmod 600 secrets/drive-bot.json`).
+- Добавьте шаблон в `.gitignore`, чтобы ключ не попал в репозиторий:
+
+  ```
+  secrets/*.json
+  *.pem
+  ```
+
+- Создайте `.env` рядом с `bot.py` и заполните параметры:
+
+  ```env
+  GOOGLE_DRIVE_CREDENTIALS_FILE=./secrets/drive-bot.json
+  GOOGLE_DRIVE_LOGS_FOLDER_ID=1AbCdEfGhIjKlMn
+  GOOGLE_DRIVE_CONSULTATIONS_FOLDER_ID=2ZyXwVuTsRqPoN
+  GOOGLE_DRIVE_REPORTS_FOLDER_ID=3QwErTyUiOpAsD
+  GOOGLE_DRIVE_LOGS_FILE_ID=1LogSheetIdXXXXXXXXXXXX
+  GOOGLE_DRIVE_CONSULTATIONS_FILE_ID=1ConsultSheetIdXXXXXXXX
+  GOOGLE_DRIVE_REPORTS_FILE_ID=1ReportSheetOrFileIdXXXXXX
+  ```
+
+  Если ключ лежит в корне проекта, путь можно указать как `./drive-bot.json`.
 
 После настройки:
 
-- `InteractionLogger` и `ConsultationLogger` обновляют соответствующие предсозданные файлы на Google Drive после каждой записи.
-- `evaluate_csv_coverage.py` загружает текстовый отчёт и, при использовании `--out`, обновляет экспортированный CSV/Markdown в папке для отчётов.
-- Если переменные не заданы или доступ к API недоступен, работа продолжается локально без ошибок.
+- `InteractionLogger` и `ConsultationLogger` обновляют соответствующие предсозданные Google Таблицы после каждой записи.
+- `evaluate_csv_coverage.py` выгружает отчёт и, при использовании `--out`, обновляет экспорт (таблица или файл) в папке `Reports`.
+- Если переменные не заданы или API недоступен, логирование продолжится локально без ошибок.
 
 ## Оценка покрытия
 
