@@ -321,12 +321,14 @@ class GoogleDriveClient:
         sheet_title = sheets[0].get("properties", {}).get("title", "Sheet1")
         target_range = f"{sheet_title}!A1"
 
+        values_resource = sheets_service.spreadsheets().values()
+
         try:
-            sheets_service.values().clear(
+            values_resource.clear(
                 spreadsheetId=file_id,
                 range=sheet_title,
             ).execute()
-            sheets_service.values().update(
+            values_resource.update(
                 spreadsheetId=file_id,
                 range=target_range,
                 valueInputOption="RAW",
