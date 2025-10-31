@@ -282,31 +282,52 @@ async def any_text(
     user_id = m.from_user.id if m.from_user else None
     history = conversation_history[user_id] if user_id is not None else []
     await m.chat.do("typing")
-    answer_result = await answer_service.generate_answer(
-        q,
-        history=history,
-        history_limit=HISTORY_LIMIT,
-    )
-    interaction_logger.log(
-        user_id=m.from_user.id,
-        username=m.from_user.username,
-        question=q,
-        answer=answer_result.text,
-        top_score=answer_result.top_score,
-        model=answer_service.model,
-        status=answer_result.status,
-    )
-    if user_id is not None:
-        history.append({"role": "user", "content": q})
-        history.append({"role": "assistant", "content": answer_result.text})
-        if HISTORY_LIMIT > 0 and len(history) > HISTORY_LIMIT:
-            del history[:-HISTORY_LIMIT]
-    await m.answer(
-        with_new_ask_hint(
-            f"{answer_result.text}\n\n"
-            "<i>Ответ носит информационный характер и не является юридической консультацией.</i>"
+    loading_message = await m.answer("Готовлю ответ…")
+    try:
+        answer_result = await answer_service.generate_answer(
+            q,
+            history=history,
+            history_limit=HISTORY_LIMIT,
         )
-    )
+        interaction_logger.log(
+            user_id=m.from_user.id,
+            username=m.from_user.username,
+            question=q,
+            answer=answer_result.text,
+            top_score=answer_result.top_score,
+            model=answer_service.model,
+            status=answer_result.status,
+        )
+        if user_id is not None:
+            history.append({"role": "user", "content": q})
+            history.append({"role": "assistant", "content": answer_result.text})
+            if HISTORY_LIMIT > 0 and len(history) > HISTORY_LIMIT:
+                del history[:-HISTORY_LIMIT]
+        await m.answer(
+            with_new_ask_hint(
+                f"{answer_result.text}\n\n"
+                "<i>Ответ носит информационный характер и не является юридической консультацией.</i>"
+            )
+        )
+    except Exception:
+        if m.from_user is not None:
+            interaction_logger.log(
+                user_id=m.from_user.id,
+                username=m.from_user.username,
+                question=q,
+                answer="",
+                top_score=0,
+                model=answer_service.model,
+                status="error",
+            )
+        await m.answer(
+            "Извини, сейчас не удалось подготовить ответ. Попробуй повторить вопрос позже."
+        )
+    finally:
+        try:
+            await bot.delete_message(chat_id=m.chat.id, message_id=loading_message.message_id)
+        except Exception:
+            pass
 
 
 @dp.callback_query(F.data == "consent_yes")
