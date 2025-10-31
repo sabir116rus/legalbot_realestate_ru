@@ -27,11 +27,15 @@ class ConsultationLogger:
         *,
         drive_client: Optional["GoogleDriveClient"] = None,
         drive_folder_id: Optional[str] = None,
+        drive_file_id: Optional[str] = None,
+        drive_file_id_env_var: Optional[str] = None,
     ) -> None:
         self._log_path = log_path
         self._log_path.parent.mkdir(parents=True, exist_ok=True)
         self._drive_client = drive_client
         self._drive_folder_id = drive_folder_id
+        self._drive_file_id = drive_file_id
+        self._drive_file_id_env_var = drive_file_id_env_var
         self._logger = logging.getLogger(__name__)
 
     def log(
@@ -70,6 +74,8 @@ class ConsultationLogger:
                 self._log_path,
                 self._drive_folder_id,
                 mime_type="text/csv",
+                file_id=self._drive_file_id,
+                file_id_env_var=self._drive_file_id_env_var,
             )
         except Exception as exc:  # pragma: no cover - network/API failures
             self._logger.warning("Failed to sync consultation log to Google Drive: %s", exc)
