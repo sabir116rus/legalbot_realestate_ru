@@ -93,7 +93,7 @@ class AnswerService:
     def _strip_markdown(text: str) -> str:
         text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)
         text = re.sub(r"#+\s*", "", text)
-        text = re.sub(r"_([^_]+)_", r"\1", text)
+        text = re.sub(r"(?<!\w)_(?!\s)([^_]+?)(?<!\s)_(?!\w)", r"\1", text)
         return text
 
     @property
