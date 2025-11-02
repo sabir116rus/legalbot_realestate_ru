@@ -244,3 +244,14 @@ python evaluate_csv_coverage.py --threshold 60
 ```bash
 pytest
 ```
+
+## Развертывание на Scalingo
+
+1. Добавь в репозиторий файлы `Procfile` и `runtime.txt` (уже присутствуют в этой версии проекта). Первый запускает два процесса: HTTP‑сервис с политикой конфиденциальности (`web`) и сам Telegram‑бот (`worker`). Второй фиксирует версию Python `3.10.14`, которую гарантированно поддерживает python-buildpack на Scalingo.
+2. Задай переменные окружения в настройках приложения (Dashboard → Environment):
+   - `TELEGRAM_BOT_TOKEN`
+   - `OPENAI_API_KEY`
+   - при необходимости `OPENAI_MODEL`, `RAG_TOP_K`, `PRIVACY_POLICY_MESSAGE` и все `GOOGLE_DRIVE_*`.
+   - `PRIVACY_POLICY_WEBAPP_URL` можно не задавать: при развертывании на Scalingo URL сформируется автоматически из `SCALINGO_APP_NAME`.
+3. Файлы из каталога `data/` (`knowledge.csv`, `privacy_policy.html` и т. д.) уже находятся в репозитории. Если требуются дополнительные секреты (например, JSON‑ключ сервисного аккаунта Google Drive), добавь их вручную на сервер и укажи путь в переменной `GOOGLE_DRIVE_CREDENTIALS_FILE`.
+4. После деплоя включи как минимум один процесс `worker` (бот) и при необходимости один процесс `web` для выдачи политики конфиденциальности. Страница доступна по адресу `https://<app-name>.scalingoapp.com/privacy-policy`.
