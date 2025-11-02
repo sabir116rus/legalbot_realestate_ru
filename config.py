@@ -65,9 +65,13 @@ class Config:
             ),
         )
 
-        privacy_policy_webapp_url = os.getenv(
-            "PRIVACY_POLICY_WEBAPP_URL"
-        )
+        privacy_policy_webapp_url = os.getenv("PRIVACY_POLICY_WEBAPP_URL")
+        if not privacy_policy_webapp_url:
+            scalingo_app_name = os.getenv("SCALINGO_APP_NAME")
+            if scalingo_app_name:
+                privacy_policy_webapp_url = (
+                    f"https://{scalingo_app_name}.scalingoapp.com/privacy-policy"
+                )
 
         google_drive_credentials_env = os.getenv("GOOGLE_DRIVE_CREDENTIALS_FILE")
         google_drive_credentials_file = (
