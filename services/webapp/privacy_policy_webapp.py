@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import os
 from pathlib import Path
 from typing import Sequence
 
@@ -58,11 +59,19 @@ async def _run_app(host: str, port: int) -> None:
 def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Serve the LegalBot privacy policy web app")
     parser.add_argument("--host", default="0.0.0.0", help="Host interface to bind to")
-    parser.add_argument("--port", type=int, default=8080, help="Port to listen on")
+    default_port = int(os.getenv("PORT", "8080"))
+    parser.add_argument(
+        "--port", type=int, default=default_port, help="Port to listen on"
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     try:
-        asyncio.run(_run_app(args.host, args.port))
+        port = args.port
+        env_port = os.getenv("PORT")
+        if env_port:
+            port = int(env_port)
+
+        asyncio.run(_run_app(args.host, port))
     except KeyboardInterrupt:  # pragma: no cover - CLI convenience
         pass
 
