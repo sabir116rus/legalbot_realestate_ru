@@ -1,2 +1,2 @@
-web: python services/webapp/privacy_policy_webapp.py
+web: uvicorn app.main:app --host 0.0.0.0 --port $PORT
 worker: python bot.py
